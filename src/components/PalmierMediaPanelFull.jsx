@@ -1,30 +1,52 @@
 import React, { useState, useRef } from 'react';
 import { 
-  Plus, 
+  Folder, 
+  Music, 
+  FileText, 
+  ListFilter, 
   Sparkles, 
   Search, 
-  LayoutGrid, 
-  ChevronRight, 
-  ChevronDown, 
-  RotateCw,
-  Folder,
-  Music,
-  FileText,
-  Play,
-  Pause,
-  Sliders,
-  Check
+  Plus, 
+  Play, 
+  Pause, 
+  Sliders, 
+  Scissors, 
+  Bookmark, 
+  Check, 
+  VolumeX,
+  Palette
 } from 'lucide-react';
-import { FULL_MEDIA_ITEMS, AUDIO_LIBRARY_ITEMS, TRANSCRIPT_CAPTIONS, AI_MODELS_CATALOG } from '../data/palmierFullProject';
+import { 
+  FULL_MEDIA_ITEMS, 
+  AUDIO_LIBRARY_ITEMS, 
+  TRANSCRIPT_CAPTIONS, 
+  AI_MODELS_CATALOG,
+  INITIAL_MARKERS,
+  WORD_LEVEL_TRANSCRIPT,
+  SOLID_MATTE_PRESETS
+} from '../data/palmierFullProject';
 import { videoEngine } from '../services/videoEngine';
 
+/**
+ * Palmier Pro Media Panel
+ * Faithful to Sources/PalmierPro/MediaPanel:
+ * - MediaTab (Assets inventory, folders, import, + Solid Matte)
+ * - AudioTab (Score, SFX, Foley library)
+ * - CaptionsTab (Captions presets gallery, subtitle generator)
+ * - IndexTab (MarkerBrowser + TranscriptBrowser with Dead Air & Filler Word cutter)
+ * - StudioTab (AI Generative model prompt studio)
+ */
 export default function PalmierMediaPanelFull({ 
   onSelectMedia, 
   onInsertAudio, 
   onInsertCaption,
-  onGenerate 
+  onGenerate,
+  onSeek,
+  onCutSilence,
+  onCutFillerWords,
+  onAddMatte
 }) {
-  const [activeTab, setActiveTab] = useState('media'); // 'media' | 'audio' | 'captions' | 'studio'
+  const [activeTab, setActiveTab] = useState('media'); // 'media' | 'audio' | 'captions' | 'index' | 'studio'
   const [items, setItems] = useState(FULL_MEDIA_ITEMS);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFolder, setActiveFolder] = useState('All');
@@ -32,6 +54,8 @@ export default function PalmierMediaPanelFull({
   const [selectedModel, setSelectedModel] = useState(AI_MODELS_CATALOG[0]);
   const [promptText, setPromptText] = useState('extreme macro close-up iridescent butterfly wing scales shimmer, cinematic lighting, 8k');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showMatteModal, setShowMatteModal] = useState(false);
+  const [transcriptSearch, setTranscriptSearch] = useState('');
   const fileInputRef = useRef(null);
 
   const filteredMedia = items.filter(item => {
@@ -113,6 +137,22 @@ export default function PalmierMediaPanelFull({
     });
   };
 
+  const handleCreateMatte = (preset) => {
+    const newMatte = {
+      id: `matte-${Date.now()}`,
+      name: preset.name,
+      folder: 'Mattes',
+      duration: '47,780',
+      isMatte: true,
+      matteColor: preset.hex,
+      thumb: '/welcome-butterfly.jpg',
+      type: 'image'
+    };
+    setItems(prev => [newMatte, ...prev]);
+    setShowMatteModal(false);
+    if (onAddMatte) onAddMatte(newMatte);
+  };
+
   return (
     <div className="palmier-media-bin">
       <input 
@@ -129,6 +169,7 @@ export default function PalmierMediaPanelFull({
         <button 
           className={`mp-tab-btn ${activeTab === 'media' ? 'active' : ''}`}
           onClick={() => setActiveTab('media')}
+          title="Media Library"
         >
           <Folder size={12} />
           <span>Media</span>
@@ -137,6 +178,7 @@ export default function PalmierMediaPanelFull({
         <button 
           className={`mp-tab-btn ${activeTab === 'audio' ? 'active' : ''}`}
           onClick={() => setActiveTab('audio')}
+          title="Audio Library"
         >
           <Music size={12} />
           <span>Audio</span>
@@ -145,64 +187,70 @@ export default function PalmierMediaPanelFull({
         <button 
           className={`mp-tab-btn ${activeTab === 'captions' ? 'active' : ''}`}
           onClick={() => setActiveTab('captions')}
+          title="Captions & Subtitles"
         >
           <FileText size={12} />
           <span>Captions</span>
         </button>
 
         <button 
+          className={`mp-tab-btn ${activeTab === 'index' ? 'active' : ''}`}
+          onClick={() => setActiveTab('index')}
+          title="Index: Markers & Transcripts"
+        >
+          <ListFilter size={12} />
+          <span>Index</span>
+        </button>
+
+        <button 
           className={`mp-tab-btn ${activeTab === 'studio' ? 'active' : ''}`}
           onClick={() => setActiveTab('studio')}
+          title="AI Studio"
         >
           <Sparkles size={12} />
           <span>AI Studio</span>
         </button>
       </div>
 
-      {/* TAB 1: MEDIA LIBRARY */}
+      {/* TAB 1: MEDIA INVENTORY */}
       {activeTab === 'media' && (
-        <div className="media-tab-content">
-          <div className="media-bin-top-header">
-            <div className="header-action-buttons">
-              <button 
-                className="bin-btn btn-import"
-                onClick={() => fileInputRef.current && fileInputRef.current.click()}
-                title="Import files from disk"
-              >
-                <Plus size={13} />
-                <span>Import</span>
-              </button>
-              <button 
-                className="bin-btn btn-sparkle" 
-                onClick={() => setActiveTab('studio')}
-              >
-                <Sparkles size={13} />
-                <span>Generate</span>
-              </button>
+        <div className="mp-tab-content-area">
+          {/* Action Row */}
+          <div className="media-action-row">
+            <div className="media-search-input-wrap">
+              <Search size={11} className="search-icon" />
+              <input 
+                type="text" 
+                placeholder="Search assets..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="media-search-input"
+              />
             </div>
-
-            <div className="header-search-and-view">
-              <div className="bin-search-box">
-                <Search size={12} className="search-icon" />
-                <input 
-                  type="text" 
-                  placeholder="Search media..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-              <button className="bin-view-toggle">
-                <LayoutGrid size={14} />
-              </button>
-            </div>
+            <button 
+              className="media-import-btn"
+              onClick={() => fileInputRef.current?.click()}
+              title="Import local video or image"
+            >
+              <Plus size={11} />
+              <span>Import</span>
+            </button>
+            <button 
+              className="media-matte-btn"
+              onClick={() => setShowMatteModal(true)}
+              title="Create Solid Color Matte"
+            >
+              <Palette size={11} />
+              <span>Matte</span>
+            </button>
           </div>
 
-          {/* Folder Pills */}
-          <div className="folder-filter-pills">
-            {['All', 'Animals', 'B-Roll', 'AI Renders'].map(f => (
+          {/* Folder Chips */}
+          <div className="media-folder-chips">
+            {['All', 'Animals', 'B-Roll', 'AI Renders', 'Imported', 'Mattes'].map((f) => (
               <button 
                 key={f}
-                className={`folder-pill ${activeFolder === f ? 'active' : ''}`}
+                className={`folder-chip ${activeFolder === f ? 'active' : ''}`}
                 onClick={() => setActiveFolder(f)}
               >
                 {f}
@@ -210,22 +258,26 @@ export default function PalmierMediaPanelFull({
             ))}
           </div>
 
-          {/* 3-Column Grid */}
-          <div className="media-bin-grid">
+          {/* Asset Grid */}
+          <div className="media-grid-scroll">
             {filteredMedia.map((item) => (
               <div 
                 key={item.id} 
-                className="media-grid-card"
+                className="media-tile-item"
                 onClick={() => onSelectMedia && onSelectMedia(item)}
-                title={`${item.name} (Click to insert into timeline)`}
               >
-                <div className="card-thumb-wrap">
-                  <img src={item.thumb} alt={item.name} />
-                  <span className="thumb-duration-badge">{item.duration}</span>
+                <div className="tile-thumb-container">
+                  {item.isMatte ? (
+                    <div 
+                      className="tile-matte-preview" 
+                      style={{ backgroundColor: item.matteColor }} 
+                    />
+                  ) : (
+                    <img src={item.thumb} alt={item.name} />
+                  )}
+                  <span className="tile-badge-duration">{item.duration}</span>
                 </div>
-                <div className="card-caption">
-                  <span className="card-title">{item.name}</span>
-                </div>
+                <div className="tile-title-text">{item.name}</div>
               </div>
             ))}
           </div>
@@ -234,30 +286,26 @@ export default function PalmierMediaPanelFull({
 
       {/* TAB 2: AUDIO LIBRARY */}
       {activeTab === 'audio' && (
-        <div className="audio-tab-content">
-          <div className="audio-list-header">
-            <span className="section-title">SFX & CINEMATIC MUSIC</span>
-          </div>
-
-          <div className="audio-items-list">
+        <div className="mp-tab-content-area">
+          <div className="audio-list-container">
             {AUDIO_LIBRARY_ITEMS.map((aud) => (
               <div key={aud.id} className="audio-item-row">
                 <button 
-                  className="audio-play-btn"
+                  className={`audio-play-btn ${playingAudioId === aud.id ? 'playing' : ''}`}
                   onClick={() => handleToggleAudio(aud)}
                 >
-                  {playingAudioId === aud.id ? <Pause size={12} /> : <Play size={12} />}
+                  {playingAudioId === aud.id ? <Pause size={10} /> : <Play size={10} />}
                 </button>
-                <div className="audio-item-info">
-                  <span className="audio-name">{aud.name}</span>
-                  <span className="audio-meta">{aud.category} · {aud.duration} · {aud.format}</span>
+                <div className="audio-meta-col">
+                  <span className="audio-title">{aud.name}</span>
+                  <span className="audio-subtext">{aud.category} · {aud.format}</span>
                 </div>
                 <button 
-                  className="audio-add-btn"
+                  className="audio-insert-btn"
                   onClick={() => onInsertAudio && onInsertAudio(aud)}
-                  title="Add to timeline audio track"
+                  title="Insert to A2 track"
                 >
-                  <Plus size={12} />
+                  <Plus size={10} />
                 </button>
               </div>
             ))}
@@ -265,96 +313,155 @@ export default function PalmierMediaPanelFull({
         </div>
       )}
 
-      {/* TAB 3: CAPTIONS & TRANSCRIPT */}
+      {/* TAB 3: CAPTIONS TAB */}
       {activeTab === 'captions' && (
-        <div className="captions-tab-content">
-          <div className="captions-top-actions">
-            <button className="captions-generate-btn">
-              <Sparkles size={12} />
-              <span>Auto-Transcribe Audio (Speech-to-Text)</span>
+        <div className="mp-tab-content-area">
+          <div className="captions-header-bar">
+            <span className="captions-heading">Auto-Generated Captions</span>
+            <span className="captions-count">{TRANSCRIPT_CAPTIONS.length} Cues</span>
+          </div>
+          <div className="captions-list-scroll">
+            {TRANSCRIPT_CAPTIONS.map((cap) => (
+              <div key={cap.id} className="caption-segment-card">
+                <div className="cap-time-row">
+                  <span className="cap-timecode">{cap.startTime.toFixed(1)}s - {cap.endTime.toFixed(1)}s</span>
+                  <button 
+                    className="cap-insert-btn"
+                    onClick={() => onInsertCaption && onInsertCaption(cap)}
+                    title="Insert Caption onto T1"
+                  >
+                    Insert T1
+                  </button>
+                </div>
+                <div className="cap-text-content">{cap.text}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: INDEX TAB (MARKER & TRANSCRIPT BROWSER) */}
+      {activeTab === 'index' && (
+        <div className="mp-tab-content-area">
+          {/* Index Action Strip: Dead Air & Filler Word Removal */}
+          <div className="index-actions-bar">
+            <button 
+              className="index-quick-cut-btn"
+              onClick={() => onCutSilence && onCutSilence()}
+              title="Remove silence gaps on timeline"
+            >
+              <VolumeX size={11} />
+              <span>Cut Dead Air (Silence)</span>
+            </button>
+            <button 
+              className="index-quick-cut-btn filler"
+              onClick={() => onCutFillerWords && onCutFillerWords()}
+              title="Remove um, uh filler words"
+            >
+              <Scissors size={11} />
+              <span>Cut Filler Words (um, uh)</span>
             </button>
           </div>
 
-          <div className="transcript-list">
-            {TRANSCRIPT_CAPTIONS.map((cap) => (
+          {/* Marker Browser Section */}
+          <div className="index-section-title">TIMELINE MARKERS</div>
+          <div className="index-markers-list">
+            {INITIAL_MARKERS.map((mk) => (
               <div 
-                key={cap.id} 
-                className="transcript-card"
-                onClick={() => onInsertCaption && onInsertCaption(cap)}
-                title="Click to insert as Title clip on T1"
+                key={mk.id} 
+                className="index-marker-row"
+                onClick={() => onSeek && onSeek(mk.time)}
               >
-                <span className="tc-stamp">[{cap.startTime.toFixed(1)}s - {cap.endTime.toFixed(1)}s]</span>
-                <p className="transcript-text">{cap.text}</p>
+                <div className="marker-dot" style={{ backgroundColor: mk.color }} />
+                <div className="marker-info-col">
+                  <div className="marker-name-row">
+                    <span className="marker-name">{mk.name}</span>
+                    <span className="marker-status-tag">{mk.status}</span>
+                  </div>
+                  <span className="marker-comment">{mk.comment}</span>
+                </div>
+                <span className="marker-time">{mk.time.toFixed(1)}s</span>
               </div>
+            ))}
+          </div>
+
+          {/* Transcript Browser Section */}
+          <div className="index-section-title" style={{ marginTop: '14px' }}>
+            TRANSCRIPT WORD STREAM
+          </div>
+          <div className="transcript-words-cloud">
+            {WORD_LEVEL_TRANSCRIPT.map((w) => (
+              <span 
+                key={w.id}
+                className={`transcript-word-chip ${w.isFiller ? 'filler' : ''} ${w.isSilence ? 'silence' : ''}`}
+                onClick={() => onSeek && onSeek(w.start)}
+                title={`${w.start.toFixed(2)}s - ${w.end.toFixed(2)}s`}
+              >
+                {w.text}
+              </span>
             ))}
           </div>
         </div>
       )}
 
-      {/* TAB 4: AI STUDIO */}
+      {/* TAB 5: AI STUDIO TAB */}
       {activeTab === 'studio' && (
-        <div className="studio-tab-content">
-          {/* SOTA Model Selector */}
-          <div className="studio-models-selector">
-            <span className="section-title">SELECT AI MODEL</span>
-            <div className="models-chips-row">
-              {AI_MODELS_CATALOG.map((m) => (
+        <div className="mp-tab-content-area">
+          <div className="studio-container">
+            <span className="studio-label">MODEL GENERATOR</span>
+            <select 
+              className="studio-model-select"
+              value={selectedModel.id}
+              onChange={(e) => setSelectedModel(AI_MODELS_CATALOG.find(m => m.id === e.target.value) || selectedModel)}
+            >
+              {AI_MODELS_CATALOG.map(m => (
+                <option key={m.id} value={m.id}>{m.name} ({m.provider})</option>
+              ))}
+            </select>
+
+            <span className="studio-label" style={{ marginTop: '10px' }}>PROMPT</span>
+            <textarea 
+              rows={4}
+              value={promptText}
+              onChange={(e) => setPromptText(e.target.value)}
+              className="studio-prompt-input"
+            />
+
+            <button 
+              className="studio-generate-btn"
+              disabled={isGenerating}
+              onClick={handleGenerate}
+            >
+              <Sparkles size={13} />
+              <span>{isGenerating ? 'Rendering Neural Frame...' : 'Generate AI Clip'}</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Solid Matte Modal (MatteSheet.swift Parity) */}
+      {showMatteModal && (
+        <div className="matte-modal-overlay">
+          <div className="matte-modal-card">
+            <span className="matte-modal-title">Create Solid Color Matte</span>
+            <p className="matte-modal-sub">Generate a clean solid color matte layer for the project.</p>
+            <div className="matte-presets-grid">
+              {SOLID_MATTE_PRESETS.map((p) => (
                 <button 
-                  key={m.id}
-                  className={`model-chip ${selectedModel.id === m.id ? 'active' : ''}`}
-                  onClick={() => setSelectedModel(m)}
+                  key={p.id}
+                  className="matte-preset-card"
+                  onClick={() => handleCreateMatte(p)}
                 >
-                  <span className="chip-name">{m.name}</span>
-                  <span className="chip-res">{m.maxRes}</span>
+                  <div className="matte-color-swatch" style={{ backgroundColor: p.hex }} />
+                  <span className="matte-preset-name">{p.name}</span>
                 </button>
               ))}
             </div>
-          </div>
-
-          {/* Seedance Frames */}
-          <div className="seedance-frames-row">
-            <div className="seedance-frame-card active">
-              <img src="/welcome-butterfly.jpg" alt="First Frame" />
-              <span className="frame-label">First Frame</span>
-            </div>
-            <div 
-              className="seedance-frame-card empty"
-              onClick={() => fileInputRef.current && fileInputRef.current.click()}
-              title="Add Last Frame from Computer"
-              style={{ cursor: 'pointer' }}
-            >
-              <Plus size={16} />
-              <span className="frame-label">Last Frame</span>
-            </div>
-          </div>
-
-          {/* Prompt Area */}
-          <div className="seedance-prompt-area">
-            <textarea 
-              rows={3}
-              value={promptText}
-              onChange={(e) => setPromptText(e.target.value)}
-              placeholder="Describe camera movement, lighting, action..."
-            />
-          </div>
-
-          {/* Bottom Generation Info & Trigger */}
-          <div className="seedance-bottom-bar">
-            <div className="seedance-model-pill">
-              <span className="model-name">{selectedModel.name}</span>
-              <span className="model-divider">|</span>
-              <span className="model-spec">{selectedModel.maxRes} · 5s</span>
-              <span className="model-divider">|</span>
-              <span className="model-credit">$ 340</span>
-            </div>
-
             <button 
-              className={`seedance-generate-circle-btn ${isGenerating ? 'generating' : ''}`}
-              onClick={handleGenerate}
-              disabled={isGenerating}
-              title={`Generate with ${selectedModel.name}`}
+              className="matte-cancel-btn" 
+              onClick={() => setShowMatteModal(false)}
             >
-              <RotateCw size={14} className={isGenerating ? 'spin-icon' : ''} />
+              Cancel
             </button>
           </div>
         </div>

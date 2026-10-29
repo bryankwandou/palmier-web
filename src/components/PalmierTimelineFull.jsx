@@ -521,6 +521,20 @@ export default function PalmierTimelineFull({
                             <img src={clip.thumb} alt={clip.name} className="filmstrip-frame" draggable="false" />
                           </div>
 
+                          {/* Keyframe Nodes Overlay (TimelineKeyframeLaneState.swift parity) */}
+                          {clip.keyframes?.opacity && (
+                            <div className="clip-keyframes-overlay">
+                              {clip.keyframes.opacity.map((kf, i) => (
+                                <div 
+                                  key={i} 
+                                  className="timeline-keyframe-diamond" 
+                                  style={{ left: `${Math.min(100, Math.max(0, (kf.frame / (24 * clip.duration)) * 100))}%` }}
+                                  title={`Keyframe at frame ${kf.frame}`}
+                                />
+                              ))}
+                            </div>
+                          )}
+
                           {/* Right Trim Handle */}
                           <div 
                             className="clip-trim-handle right"

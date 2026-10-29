@@ -3479,5 +3479,542 @@ input, textarea {
   box-shadow: 0 0 4px rgba(245, 158, 11, 0.8);
 }
 
+/* ========================================================
+   3-WAY COLOR WHEELS (ColorWheelPad.swift & ColorWheelControl.swift)
+   ======================================================== */
+.color-wheels-triple-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 6px;
+  margin-bottom: 12px;
+}
+
+.color-wheel-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #111117;
+  border: 1px solid #1c1c24;
+  border-radius: 6px;
+  padding: 8px 4px;
+}
+
+.wheel-unit-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px 6px;
+}
+
+.wheel-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: #a1a1aa;
+  letter-spacing: 0.5px;
+}
+
+.wheel-reset-btn {
+  background: transparent;
+  border: none;
+  color: #52525b;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wheel-reset-btn:hover {
+  color: #e4e4e7;
+}
+
+.wheel-pad-disk {
+  position: relative;
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: crosshair;
+  user-select: none;
+}
+
+.wheel-hue-disc {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 90deg,
+    #ff0000 0deg,
+    #ffff00 60deg,
+    #00ff00 120deg,
+    #00ffff 180deg,
+    #0000ff 240deg,
+    #ff00ff 300deg,
+    #ff0000 360deg
+  );
+}
+
+.wheel-radial-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, #808080 0%, rgba(128, 128, 128, 0.4) 45%, transparent 80%);
+}
+
+.wheel-crosshair-h {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.15);
+  pointer-events: none;
+}
+
+.wheel-crosshair-v {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.15);
+  pointer-events: none;
+}
+
+.wheel-outer-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  pointer-events: none;
+}
+
+.wheel-puck {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1.5px solid #000000;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+}
+
+.wheel-slider-container {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 0 6px;
+}
+
+.wheel-master-slider {
+  flex: 1;
+  height: 3px;
+  background: #272732;
+  accent-color: #f59e0b;
+}
+
+.wheel-readout {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: #71717a;
+  width: 28px;
+  text-align: right;
+}
+
+/* ========================================================
+   RGB & LUMA CURVE EDITOR (CurveEditorView.swift parity)
+   ======================================================== */
+.curve-editor-container {
+  background: #111116;
+  border: 1px solid #1c1c24;
+  border-radius: 6px;
+  padding: 8px;
+  margin-top: 6px;
+}
+
+.curve-channel-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.channel-btns-group {
+  display: flex;
+  gap: 4px;
+}
+
+.curve-ch-btn {
+  background: #181820;
+  border: 1px solid #272736;
+  border-radius: 3px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: #71717a;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+.curve-ch-btn.active {
+  background: #222230;
+}
+
+.curve-reset-btn {
+  background: transparent;
+  border: none;
+  color: #52525b;
+  cursor: pointer;
+}
+
+.curve-canvas-box {
+  width: 100%;
+  height: 120px;
+  background: #09090c;
+  border: 1px solid #1f1f28;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.curve-svg-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.curve-control-handle {
+  cursor: grab;
+}
+
+.curve-readout-row {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: #71717a;
+  margin-top: 6px;
+}
+
+/* ========================================================
+   MULTICAM TAB (MulticamTab.swift parity)
+   ======================================================== */
+.multicam-angles-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.multicam-angle-card {
+  background: #111117;
+  border: 1px solid #1c1c24;
+  border-radius: 6px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.multicam-angle-card.active {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.angle-thumb-wrapper {
+  position: relative;
+  width: 100%;
+  height: 60px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.angle-thumb-wrapper img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.angle-live-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: #ef4444;
+  color: #fff;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
+.angle-label-text {
+  font-size: 11px;
+  font-weight: 600;
+  color: #e4e4e7;
+}
+
+/* ========================================================
+   INDEX TAB & TRANSCRIPT BROWSER (IndexTab.swift parity)
+   ======================================================== */
+.index-actions-bar {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.index-quick-cut-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #1c1c26;
+  border: 1px solid #2e2e3e;
+  border-radius: 4px;
+  color: #e4e4e7;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+.index-quick-cut-btn:hover {
+  background: #272738;
+}
+
+.index-quick-cut-btn.filler {
+  border-color: #f59e0b;
+  color: #f59e0b;
+}
+
+.index-section-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: #71717a;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.index-markers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.index-marker-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #111116;
+  border: 1px solid #1c1c24;
+  border-radius: 4px;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+.index-marker-row:hover {
+  background: #181822;
+}
+
+.marker-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.marker-info-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.marker-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.marker-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: #f4f4f5;
+}
+
+.marker-status-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px;
+  background: #222230;
+  color: #a1a1aa;
+  padding: 1px 4px;
+  border-radius: 2px;
+  text-transform: uppercase;
+}
+
+.marker-comment {
+  font-size: 10px;
+  color: #71717a;
+}
+
+.marker-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: #f59e0b;
+}
+
+.transcript-words-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  background: #111116;
+  border: 1px solid #1c1c24;
+  border-radius: 6px;
+  padding: 8px;
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.transcript-word-chip {
+  font-size: 11px;
+  color: #e4e4e7;
+  background: #181822;
+  border: 1px solid #272736;
+  padding: 2px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.transcript-word-chip.filler {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: #f59e0b;
+  color: #f59e0b;
+}
+
+.transcript-word-chip.silence {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+/* ========================================================
+   SOLID MATTE MODAL (MatteSheet.swift parity)
+   ======================================================== */
+.matte-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.matte-modal-card {
+  width: 360px;
+  background: #16161f;
+  border: 1px solid #272736;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.8);
+}
+
+.matte-modal-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  display: block;
+}
+
+.matte-modal-sub {
+  font-size: 11px;
+  color: #71717a;
+  margin-top: 4px;
+  margin-bottom: 14px;
+}
+
+.matte-presets-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.matte-preset-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #1c1c28;
+  border: 1px solid #2a2a3a;
+  border-radius: 4px;
+  padding: 6px 8px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.matte-preset-card:hover {
+  background: #242434;
+}
+
+.matte-color-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.matte-preset-name {
+  font-size: 11px;
+  font-weight: 500;
+  color: #e4e4e7;
+}
+
+.matte-cancel-btn {
+  width: 100%;
+  padding: 6px;
+  background: #272736;
+  border: none;
+  border-radius: 4px;
+  color: #a1a1aa;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.matte-cancel-btn:hover {
+  color: #fff;
+}
+
+/* ========================================================
+   KEYFRAME DIAMONDS ON TIMELINE CLIPS
+   ======================================================== */
+.clip-keyframes-overlay {
+  position: absolute;
+  bottom: 3px;
+  left: 0;
+  right: 0;
+  height: 8px;
+  pointer-events: none;
+}
+
+.timeline-keyframe-diamond {
+  position: absolute;
+  top: 1px;
+  width: 6px;
+  height: 6px;
+  background: #f59e0b;
+  transform: translateX(-3px) rotate(45deg);
+  border: 1px solid #ffffff;
+  box-shadow: 0 0 4px rgba(245, 158, 11, 0.9);
+}
+
+
 
 

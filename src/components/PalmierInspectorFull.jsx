@@ -5,18 +5,30 @@ import {
   Volume2, 
   Sparkles, 
   Type, 
-  Check, 
-  RotateCw,
-  Eye,
-  Film
+  Film,
+  Camera,
+  Layers,
+  Sparkle
 } from 'lucide-react';
-import { COLOR_LUT_PRESETS } from '../data/palmierFullProject';
+import { COLOR_LUT_PRESETS, MULTICAM_ANGLES } from '../data/palmierFullProject';
+import ColorWheelControl from './ColorWheelControl';
+import CurveEditorView from './CurveEditorView';
 
+/**
+ * Palmier Pro Inspector
+ * Faithful to Sources/PalmierPro/Inspector/InspectorView.swift and Tabs:
+ * - AdjustTab (Transform, Opacity, Blend Mode, Corner Radius, Edge Softness, Speed)
+ * - ColorTab (3-Way Lift/Gamma/Gain Wheels, RGB/Luma Curve Editor, LUT Presets, Sabattier, Tri-X 16mm Grain, Vignette, Glow)
+ * - AudioTab (Volume dB, Stereo Pan, 3-Band EQ, AI Denoise, Vocal Boost, Fades)
+ * - AIEditTab (Camera Motion synthesis, Extend Shot, Re-light Scene, Style Transfer)
+ * - TextTab (Content, Font Family, Fill Mode: color/inverted/footage, Animation: typewriter/pop/fade/karaoke)
+ * - MulticamTab (4-Cam Angle Switcher matching MulticamTab.swift)
+ */
 export default function PalmierInspectorFull({ 
   selectedClip, 
   onUpdateClip 
 }) {
-  const [activeTab, setActiveTab] = useState('adjust'); // 'adjust' | 'color' | 'audio' | 'ai' | 'text'
+  const [activeTab, setActiveTab] = useState('adjust'); // 'adjust' | 'color' | 'audio' | 'ai' | 'text' | 'multicam'
 
   const clip = selectedClip || {
     id: 'default',
@@ -36,11 +48,28 @@ export default function PalmierInspectorFull({
     exposure: 0.0,
     contrast: 1.0,
     saturation: 1.0,
-    temperature: 0,
+    temperature: 6500,
+    lift_x: 0,
+    lift_y: 0,
+    lift_m: 0,
+    gamma_x: 0,
+    gamma_y: 0,
+    gamma_m: 1,
+    gain_x: 0,
+    gain_y: 0,
+    gain_m: 1,
+    vignette: 0,
+    glow: 0,
+    blur: 0,
+    invert: false,
     solarize: false,
     grain: false,
     cameraMotion: 'none',
-    text: ''
+    text: '',
+    fontFamily: 'Inter',
+    fillMode: 'color',
+    animation: 'none',
+    multicamAngle: 'angle-1'
   };
 
   const handleChange = (key, value) => {
@@ -70,7 +99,7 @@ export default function PalmierInspectorFull({
         </span>
       </div>
 
-      {/* 5-Tab Navigation Bar matching PalmierPro Inspector Tabs */}
+      {/* 6-Tab Navigation Bar matching PalmierPro Inspector Tabs */}
       <div className="inspector-tabs-navbar">
         <button 
           className={`insp-tab-btn ${activeTab === 'adjust' ? 'active' : ''}`}
@@ -88,6 +117,15 @@ export default function PalmierInspectorFull({
         >
           <Palette size={13} />
           <span>Color</span>
+        </button>
+
+        <button 
+          className={`insp-tab-btn ${activeTab === 'multicam' ? 'active' : ''}`}
+          onClick={() => setActiveTab('multicam')}
+          title="Multicam Switching"
+        >
+          <Camera size={13} />
+          <span>Multicam</span>
         </button>
 
         <button 
@@ -160,6 +198,17 @@ export default function PalmierInspectorFull({
                   <span className="param-value">px</span>
                 </div>
               </div>
+              <div className="param-row">
+                <span className="param-label">Rotation</span>
+                <div className="param-control">
+                  <input 
+                    type="range" min="-180" max="180" value={clip.rotation || 0}
+                    onChange={(e) => handleChange('rotation', parseInt(e.target.value) || 0)}
+                    className="param-slider"
+                  />
+                  <span className="param-value">{clip.rotation || 0}°</span>
+                </div>
+              </div>
             </div>
 
             <div className="inspector-section">
@@ -176,6 +225,21 @@ export default function PalmierInspectorFull({
                   />
                   <span className="param-value">{clip.opacity !== undefined ? clip.opacity : 100}%</span>
                 </div>
+              </div>
+              <div className="param-row">
+                <span className="param-label">Blend Mode</span>
+                <select 
+                  className="param-select"
+                  value={clip.blendMode || 'normal'}
+                  onChange={(e) => handleChange('blendMode', e.target.value)}
+                >
+                  <option value="normal">Normal (Source Over)</option>
+                  <option value="screen">Screen</option>
+                  <option value="multiply">Multiply</option>
+                  <option value="overlay">Overlay</option>
+                  <option value="difference">Difference</option>
+                  <option value="color-dodge">Color Dodge</option>
+                </select>
               </div>
               <div className="param-row">
                 <span className="param-label">Edge Rounding</span>
@@ -223,6 +287,86 @@ export default function PalmierInspectorFull({
         {/* TAB 2: COLOR */}
         {activeTab === 'color' && (
           <div className="tab-pane-content">
+            {/* 3-WAY COLOR WHEELS (LIFT, GAMMA, GAIN) */}
+            <div className="inspector-section">
+              <div className="section-title-row">
+                <span className="section-title">3-WAY COLOR WHEELS</span>
+              </div>
+              <div className="color-wheels-triple-grid">
+                <ColorWheelControl 
+                  title="LIFT"
+                  x={clip.lift_x || 0}
+                  y={clip.lift_y || 0}
+                  master={clip.lift_m || 0}
+                  masterMin={-0.5}
+                  masterMax={0.5}
+                  onColorChange={(x, y) => {
+                    handleChange('lift_x', x);
+                    handleChange('lift_y', y);
+                  }}
+                  onMasterChange={(m) => handleChange('lift_m', m)}
+                  onReset={() => {
+                    handleChange('lift_x', 0);
+                    handleChange('lift_y', 0);
+                    handleChange('lift_m', 0);
+                  }}
+                />
+
+                <ColorWheelControl 
+                  title="GAMMA"
+                  x={clip.gamma_x || 0}
+                  y={clip.gamma_y || 0}
+                  master={clip.gamma_m !== undefined ? clip.gamma_m : 1.0}
+                  masterMin={0.5}
+                  masterMax={2.0}
+                  onColorChange={(x, y) => {
+                    handleChange('gamma_x', x);
+                    handleChange('gamma_y', y);
+                  }}
+                  onMasterChange={(m) => handleChange('gamma_m', m)}
+                  onReset={() => {
+                    handleChange('gamma_x', 0);
+                    handleChange('gamma_y', 0);
+                    handleChange('gamma_m', 1.0);
+                  }}
+                />
+
+                <ColorWheelControl 
+                  title="GAIN"
+                  x={clip.gain_x || 0}
+                  y={clip.gain_y || 0}
+                  master={clip.gain_m !== undefined ? clip.gain_m : 1.0}
+                  masterMin={0.5}
+                  masterMax={1.5}
+                  onColorChange={(x, y) => {
+                    handleChange('gain_x', x);
+                    handleChange('gain_y', y);
+                  }}
+                  onMasterChange={(m) => handleChange('gain_m', m)}
+                  onReset={() => {
+                    handleChange('gain_x', 0);
+                    handleChange('gain_y', 0);
+                    handleChange('gain_m', 1.0);
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* INTERACTIVE RGB CURVES EDITOR */}
+            <div className="inspector-section">
+              <div className="section-title-row">
+                <span className="section-title">RGB & LUMA CURVES</span>
+              </div>
+              <CurveEditorView 
+                curves={clip.curves}
+                onChangeCurve={(ch, pts) => {
+                  const updatedCurves = { ...(clip.curves || {}), [ch]: pts };
+                  handleChange('curves', updatedCurves);
+                }}
+              />
+            </div>
+
+            {/* CINEMATIC LUT PRESETS */}
             <div className="inspector-section">
               <div className="section-title-row">
                 <span className="section-title">CINEMATIC LUT PRESETS</span>
@@ -241,9 +385,21 @@ export default function PalmierInspectorFull({
               </div>
             </div>
 
+            {/* COLOR TEMPERATURE & BASIC GRADING */}
             <div className="inspector-section">
               <div className="section-title-row">
-                <span className="section-title">COLOR GRADING</span>
+                <span className="section-title">PRIMARY BALANCING</span>
+              </div>
+              <div className="param-row">
+                <span className="param-label">Temperature</span>
+                <div className="param-control">
+                  <input 
+                    type="range" min="2000" max="11000" step="100" value={clip.temperature || 6500}
+                    onChange={(e) => handleChange('temperature', parseInt(e.target.value))}
+                    className="param-slider"
+                  />
+                  <span className="param-value">{clip.temperature || 6500} K</span>
+                </div>
               </div>
               <div className="param-row">
                 <span className="param-label">Exposure</span>
@@ -280,12 +436,13 @@ export default function PalmierInspectorFull({
               </div>
             </div>
 
+            {/* STYLIZE EFFECTS STACK */}
             <div className="inspector-section">
               <div className="section-title-row">
-                <span className="section-title">FILM EMULSION (SHOT 19)</span>
+                <span className="section-title">STYLIZE & FILM LOOKS</span>
               </div>
               <div className="param-row">
-                <span className="param-label">Sabattier Solarization</span>
+                <span className="param-label">Sabattier Solarize</span>
                 <div className="param-control">
                   <input 
                     type="checkbox"
@@ -304,11 +461,79 @@ export default function PalmierInspectorFull({
                   />
                 </div>
               </div>
+              <div className="param-row">
+                <span className="param-label">Vignette</span>
+                <div className="param-control">
+                  <input 
+                    type="range" min="0" max="1" step="0.05" value={clip.vignette || 0}
+                    onChange={(e) => handleChange('vignette', parseFloat(e.target.value))}
+                    className="param-slider"
+                  />
+                  <span className="param-value">{((clip.vignette || 0) * 100).toFixed(0)}%</span>
+                </div>
+              </div>
+              <div className="param-row">
+                <span className="param-label">Luminous Glow</span>
+                <div className="param-control">
+                  <input 
+                    type="range" min="0" max="1" step="0.05" value={clip.glow || 0}
+                    onChange={(e) => handleChange('glow', parseFloat(e.target.value))}
+                    className="param-slider"
+                  />
+                  <span className="param-value">{((clip.glow || 0) * 100).toFixed(0)}%</span>
+                </div>
+              </div>
             </div>
           </div>
         )}
 
-        {/* TAB 3: AUDIO */}
+        {/* TAB 3: MULTICAM SWITCHING */}
+        {activeTab === 'multicam' && (
+          <div className="tab-pane-content">
+            <div className="inspector-section">
+              <div className="section-title-row">
+                <span className="section-title">MULTICAM CAMERA ANGLES</span>
+              </div>
+              <p className="section-desc-note">
+                Select camera angle to switch program feed at the current cut point.
+              </p>
+              <div className="multicam-angles-grid">
+                {MULTICAM_ANGLES.map((angle) => {
+                  const isCurrent = (clip.multicamAngle || 'angle-1') === angle.id;
+                  return (
+                    <button
+                      key={angle.id}
+                      className={`multicam-angle-card ${isCurrent ? 'active' : ''}`}
+                      onClick={() => handleChange('multicamAngle', angle.id)}
+                    >
+                      <div className="angle-thumb-wrapper">
+                        <img src={angle.thumb} alt={angle.label} />
+                        {isCurrent && <span className="angle-live-badge">PROGRAM</span>}
+                      </div>
+                      <span className="angle-label-text">{angle.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="inspector-section">
+              <div className="section-title-row">
+                <span className="section-title">MULTICAM SYNC ENGINE</span>
+              </div>
+              <div className="param-row">
+                <span className="param-label">Sync Method</span>
+                <span className="param-value">Audio Waveform Cross-Correlation</span>
+              </div>
+              <div className="param-row">
+                <span className="param-label">Sync Confidence</span>
+                <span className="param-value" style={{ color: '#10b981' }}>99.8%</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: AUDIO */}
         {activeTab === 'audio' && (
           <div className="tab-pane-content">
             <div className="inspector-section">
@@ -355,13 +580,13 @@ export default function PalmierInspectorFull({
                 <span className="section-title">VOCAL DENOISE & ISOLATION</span>
               </div>
               <div className="param-row">
-                <span className="param-label">AI Denoise</span>
+                <span className="param-label">DeepFilterNet3 Denoise</span>
                 <div className="param-control">
                   <input type="checkbox" defaultChecked />
                 </div>
               </div>
               <div className="param-row">
-                <span className="param-label">Vocal Boost</span>
+                <span className="param-label">Vocal Boost (Dialogue)</span>
                 <div className="param-control">
                   <input type="checkbox" defaultChecked />
                 </div>
@@ -370,7 +595,7 @@ export default function PalmierInspectorFull({
           </div>
         )}
 
-        {/* TAB 4: AI EDIT */}
+        {/* TAB 5: AI EDIT */}
         {activeTab === 'ai' && (
           <div className="tab-pane-content">
             <div className="inspector-section">
@@ -400,11 +625,11 @@ export default function PalmierInspectorFull({
                   <span>Extend Shot (+3s Outpainting)</span>
                 </button>
                 <button className="ai-action-btn">
-                  <RotateCw size={12} />
+                  <Palette size={12} />
                   <span>Re-light Scene (Golden Hour)</span>
                 </button>
                 <button className="ai-action-btn">
-                  <Palette size={12} />
+                  <Layers size={12} />
                   <span>Transfer Style from Shot 19</span>
                 </button>
               </div>
@@ -412,7 +637,7 @@ export default function PalmierInspectorFull({
           </div>
         )}
 
-        {/* TAB 5: TEXT */}
+        {/* TAB 6: TEXT */}
         {activeTab === 'text' && (
           <div className="tab-pane-content">
             <div className="inspector-section">
@@ -430,22 +655,57 @@ export default function PalmierInspectorFull({
 
             <div className="inspector-section">
               <div className="section-title-row">
-                <span className="section-title">TYPOGRAPHY</span>
+                <span className="section-title">TYPOGRAPHY & FILL</span>
               </div>
               <div className="param-row">
                 <span className="param-label">Font Family</span>
-                <select className="param-select">
-                  <option>Inter</option>
-                  <option>JetBrains Mono</option>
-                  <option>Cinzel Decorative</option>
-                  <option>Montserrat</option>
+                <select 
+                  className="param-select"
+                  value={clip.fontFamily || 'Inter'}
+                  onChange={(e) => handleChange('fontFamily', e.target.value)}
+                >
+                  <option value="Inter">Inter (Sans)</option>
+                  <option value="Space Grotesk">Space Grotesk (Modern)</option>
+                  <option value="Playfair Display">Playfair Display (Serif)</option>
+                  <option value="Poppins">Poppins (Geometric)</option>
+                  <option value="Permanent Marker">Permanent Marker (Brush)</option>
+                </select>
+              </div>
+              <div className="param-row">
+                <span className="param-label">Fill Mode</span>
+                <select 
+                  className="param-select"
+                  value={clip.fillMode || 'color'}
+                  onChange={(e) => handleChange('fillMode', e.target.value)}
+                >
+                  <option value="color">Solid Typography</option>
+                  <option value="inverted">Inverted (Difference Blend)</option>
+                  <option value="footage">Footage Stencil</option>
+                </select>
+              </div>
+              <div className="param-row">
+                <span className="param-label">Animation Preset</span>
+                <select 
+                  className="param-select"
+                  value={clip.animation || 'none'}
+                  onChange={(e) => handleChange('animation', e.target.value)}
+                >
+                  <option value="none">Static (None)</option>
+                  <option value="typewriter">Typewriter</option>
+                  <option value="pop">Pop In</option>
+                  <option value="fade">Smooth Fade</option>
+                  <option value="karaoke">Karaoke Active Word</option>
                 </select>
               </div>
               <div className="param-row">
                 <span className="param-label">Font Size</span>
                 <div className="param-control">
-                  <input type="range" min="14" max="72" defaultValue="28" className="param-slider" />
-                  <span className="param-value">28px</span>
+                  <input 
+                    type="range" min="14" max="72" value={clip.fontSize || 36} 
+                    onChange={(e) => handleChange('fontSize', parseInt(e.target.value))}
+                    className="param-slider" 
+                  />
+                  <span className="param-value">{clip.fontSize || 36}px</span>
                 </div>
               </div>
             </div>

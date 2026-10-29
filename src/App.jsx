@@ -250,6 +250,55 @@ export default function App() {
     }
   };
 
+  // Cut Silence / Dead Air (remove_silence parity)
+  const handleCutSilence = () => {
+    setAgentActivity({
+      active: true,
+      label: 'MCP: remove_silence (Closed 1.2s dead air)',
+      startTime: 5.5,
+      duration: 1.2
+    });
+    setClips(prev => prev.map(c => {
+      if (c.startTime >= 5.5) {
+        return { ...c, startTime: Math.max(0, c.startTime - 1.2) };
+      }
+      return c;
+    }));
+    setTimeout(() => setAgentActivity(null), 3500);
+  };
+
+  // Cut Filler Words (remove_words parity)
+  const handleCutFillerWords = () => {
+    setAgentActivity({
+      active: true,
+      label: "MCP: remove_words (Cut filler 'um', 'uh')",
+      startTime: 1.0,
+      duration: 0.4
+    });
+    setClips(prev => prev.map(c => {
+      if (c.startTime >= 1.0) {
+        return { ...c, startTime: Math.max(0, c.startTime - 0.4) };
+      }
+      return c;
+    }));
+    setTimeout(() => setAgentActivity(null), 3500);
+  };
+
+  // Add Solid Color Matte Clip
+  const handleAddMatte = (matteItem) => {
+    const newMatteClip = {
+      id: `v-clip-${Date.now()}`,
+      trackId: 'V1',
+      name: matteItem.name,
+      startTime: currentTime,
+      duration: 3.5,
+      isMatte: true,
+      matteColor: matteItem.matteColor
+    };
+    setClips(prev => [...prev, newMatteClip]);
+    setSelectedClipId(newMatteClip.id);
+  };
+
   // Insert Audio clip
   const handleInsertAudio = (audioItem) => {
     const newAudioClip = {
@@ -396,7 +445,7 @@ export default function App() {
             {/* 36px Vertical Nav Strip */}
             <PalmierNavStrip />
 
-            {/* Media Library Bin & Seedance 2 Generation Studio (4 Tabs) */}
+            {/* Media Library Bin & Seedance 2 Generation Studio (5 Tabs) */}
             <PalmierMediaPanelFull 
               onSelectMedia={(item) => {
                 handleAgentToolCall('add_clips', {
@@ -407,6 +456,10 @@ export default function App() {
               }}
               onInsertAudio={handleInsertAudio}
               onInsertCaption={handleInsertCaption}
+              onCutSilence={handleCutSilence}
+              onCutFillerWords={handleCutFillerWords}
+              onAddMatte={handleAddMatte}
+              onSeek={(t) => setCurrentTime(t)}
               onGenerate={(newItem) => {
                 handleAgentToolCall('add_clips', {
                   name: newItem.name,

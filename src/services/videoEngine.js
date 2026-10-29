@@ -1,7 +1,11 @@
 /**
  * Palmier Pro Video & Audio Engine
- * Real-time 24fps multi-layer video compositing engine (V1 + V2 + T1 + Shaders + 16mm Grain),
- * Web Audio API multi-track synthesis, and MediaRecorder master video export.
+ * Real-time 24fps multi-layer video compositing engine matching Sources/PalmierPro/Compositing/FrameRenderer.swift:
+ * - V1 (Program Video Track) + V2 (B-roll Overlay) + T1 (Titles & Captions)
+ * - 3-Way Color Wheels (Lift, Gamma, Gain) & Color Temperature/Tint
+ * - Effect Stack: Vignette, Glow, Gaussian Blur, Invert, Sabattier Solarize, Kodak Tri-X 16mm Grain
+ * - Multicam Angle Camera Switching (Angle 1 Wide, Angle 2 Close, Angle 3 Detail, Angle 4 Screen)
+ * - Web Audio API multi-track synthesis, Stereo VU level metering, and MediaRecorder MP4 master export.
  */
 
 class PalmierVideoEngine {
@@ -61,7 +65,7 @@ class PalmierVideoEngine {
 
       this.isAudioInitialized = true;
     } catch (e) {
-      // Audio autoplay policy
+      // Audio policy
     }
   }
 
@@ -80,7 +84,7 @@ class PalmierVideoEngine {
       osc.start();
       osc.stop(this.audioCtx.currentTime + 0.035);
     } catch (e) {
-      // audio error
+      // scrub sound fallback
     }
   }
 
@@ -100,8 +104,6 @@ class PalmierVideoEngine {
 
   /**
    * Complete Multi-Layer Composite Frame Renderer
-   * Renders V1 (background), V2 (overlay B-roll), T1 (titles/captions),
-   * applies color adjustments, solarization shaders, and dynamic 16mm film grain.
    */
   renderFrame(canvas, allClips, currentTime, sequence = { fps: 24, resolution: '1920x1080' }) {
     if (!canvas) return;
@@ -124,7 +126,7 @@ class PalmierVideoEngine {
     // Fallback clip if timeline is paused on unselected point
     const activeClip = v1Clip || clips.find(c => c.trackId === 'V1') || clips[0];
 
-    // 2. Draw Layer V1 (Main Track)
+    // 2. Draw Layer V1 (Main Program Track)
     if (activeClip) {
       this.drawMediaLayer(ctx, activeClip, width, height, currentTime, false);
     }
@@ -134,32 +136,45 @@ class PalmierVideoEngine {
       this.drawMediaLayer(ctx, v2Clip, width, height, currentTime, true);
     }
 
-    // 4. Draw Layer T1 (Title & Subtitle Captions) if present
-    if (t1Clip && t1Clip.text) {
-      this.drawTextLayer(ctx, t1Clip, width, height);
+    // 4. Apply 3-Way Lift, Gamma, Gain Color Shift if present
+    const primaryGradeClip = v1Clip || activeClip;
+    if (primaryGradeClip) {
+      this.applyColorGradingShifts(ctx, primaryGradeClip, width, height);
     }
 
-    // 5. Global / Active Clip Shaders (Solarize & Film Grain)
-    const targetShaderClip = v1Clip || activeClip;
-    if (targetShaderClip?.solarize) {
+    // 5. Apply Effects Stack (Vignette, Glow, Solarize, 16mm Grain)
+    if (primaryGradeClip?.vignette && primaryGradeClip.vignette > 0) {
+      this.applyVignette(ctx, width, height, primaryGradeClip.vignette);
+    }
+
+    if (primaryGradeClip?.glow && primaryGradeClip.glow > 0) {
+      this.applyGlow(ctx, width, height, primaryGradeClip.glow);
+    }
+
+    if (primaryGradeClip?.solarize) {
       this.applySabattierShader(ctx, width, height);
     }
 
-    if (targetShaderClip?.grain || targetShaderClip?.solarize) {
+    if (primaryGradeClip?.grain || primaryGradeClip?.solarize) {
       this.apply16mmFilmGrain(ctx, width, height);
     }
 
-    // 6. Safe Area Guides
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+    // 6. Draw Layer T1 (Title & Subtitle Captions) on top of video
+    if (t1Clip && t1Clip.text) {
+      this.drawTextLayer(ctx, t1Clip, width, height, currentTime);
+    }
+
+    // 7. Safe Area Guides
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
     ctx.lineWidth = 1;
     ctx.strokeRect(width * 0.05, height * 0.05, width * 0.9, height * 0.9);
     ctx.strokeRect(width * 0.1, height * 0.1, width * 0.8, height * 0.8);
 
-    // 7. Frame Counter Burn-In (matching PalmierPro inspectTimeline)
+    // 8. Frame Counter Burn-In (matching PalmierPro inspectTimeline parity)
     const fps = sequence?.fps || 24;
     const currentFrame = Math.floor(currentTime * fps);
     ctx.font = '600 24px "JetBrains Mono", monospace';
-    ctx.fillStyle = 'rgba(245, 158, 11, 0.85)';
+    ctx.fillStyle = 'rgba(245, 158, 11, 0.9)';
     ctx.fillText(`f${currentFrame}`, 40, 60);
 
     // Resolution badge in corner
@@ -169,7 +184,25 @@ class PalmierVideoEngine {
   }
 
   drawMediaLayer(ctx, clip, width, height, currentTime, isOverlay = false) {
-    const thumbUrl = clip.thumb || '/welcome-butterfly.jpg';
+    // Resolve Multicam Angle Source if assigned
+    let thumbUrl = clip.thumb || '/welcome-butterfly.jpg';
+    if (clip.multicamAngle === 'angle-2') {
+      thumbUrl = '/tour-hero.jpg';
+    } else if (clip.multicamAngle === 'angle-3') {
+      thumbUrl = '/welcome-butterfly.jpg';
+    } else if (clip.multicamAngle === 'angle-4') {
+      thumbUrl = '/tour-hero.jpg';
+    }
+
+    // Check for solid matte color
+    if (clip.isMatte && clip.matteColor) {
+      ctx.save();
+      ctx.fillStyle = clip.matteColor;
+      ctx.fillRect(0, 0, width, height);
+      ctx.restore();
+      return;
+    }
+
     const img = this.getImage(thumbUrl);
     if (!img || !img.complete || img.naturalWidth === 0) return;
 
@@ -179,21 +212,31 @@ class PalmierVideoEngine {
     const opacity = (clip.opacity !== undefined ? clip.opacity : 100) / 100;
     ctx.globalAlpha = Math.max(0, Math.min(1, opacity));
 
+    // Blend Mode
+    if (clip.blendMode && clip.blendMode !== 'normal') {
+      ctx.globalCompositeOperation = clip.blendMode;
+    }
+
     // Transform parameters
     const scale = (clip.scale || 100) / 100;
     const posX = clip.posX || 0;
     const posY = clip.posY || 0;
     const rotation = ((clip.rotation || 0) * Math.PI) / 180;
 
-    // Camera motion drift
+    // Camera motion synthesis
     let driftX = 0;
     let driftY = 0;
-    if (clip.cameraMotion === 'pan-left') {
-      driftX = -(currentTime % 5) * 10;
-    } else if (clip.cameraMotion === 'dolly-in') {
-      driftY = (currentTime % 5) * 6;
+    if (clip.cameraMotion === 'Pan Left') {
+      driftX = -(currentTime % 5) * 12;
+    } else if (clip.cameraMotion === 'Pan Right') {
+      driftX = (currentTime % 5) * 12;
+    } else if (clip.cameraMotion === 'Tilt Up') {
+      driftY = -(currentTime % 5) * 8;
+    } else if (clip.cameraMotion === 'Zoom In') {
+      const zoomPulse = 1 + (currentTime % 5) * 0.05;
+      ctx.scale(zoomPulse, zoomPulse);
     } else {
-      driftY = Math.sin(currentTime * 1.5) * 4;
+      driftY = Math.sin(currentTime * 1.5) * 3;
     }
 
     const centerX = width / 2 + posX + driftX;
@@ -203,15 +246,21 @@ class PalmierVideoEngine {
     if (rotation !== 0) ctx.rotate(rotation);
     ctx.scale(scale, scale);
 
-    // Color Filters
+    // Color Filters: Exposure, Contrast, Saturation, Temperature, Blur, Invert
     const exposure = clip.exposure !== undefined ? clip.exposure : 0.0;
     const contrast = clip.contrast !== undefined ? clip.contrast : 1.0;
     const saturation = clip.saturation !== undefined ? clip.saturation : 1.0;
+    const blurRadius = clip.blur || 0;
+    const invertVal = clip.invert ? 100 : 0;
 
     const brightnessVal = 100 + exposure * 25;
     const contrastVal = contrast * 100;
     const saturateVal = saturation * 100;
-    ctx.filter = `brightness(${brightnessVal}%) contrast(${contrastVal}%) saturate(${saturateVal}%)`;
+    
+    let filterStr = `brightness(${brightnessVal}%) contrast(${contrastVal}%) saturate(${saturateVal}%)`;
+    if (blurRadius > 0) filterStr += ` blur(${blurRadius}px)`;
+    if (invertVal > 0) filterStr += ` invert(${invertVal}%)`;
+    ctx.filter = filterStr;
 
     // Aspect Fit / Fill calculation
     const imgAspect = img.naturalWidth / img.naturalHeight;
@@ -243,30 +292,117 @@ class PalmierVideoEngine {
     ctx.restore();
   }
 
-  drawTextLayer(ctx, t1Clip, width, height) {
+  /**
+   * 3-Way Lift, Gamma, Gain and Temperature color grading shift
+   */
+  applyColorGradingShifts(ctx, clip, width, height) {
+    // Lift (Shadows)
+    if (clip.lift_x || clip.lift_y || clip.lift_m) {
+      const liftHue = Math.atan2(clip.lift_y || 0, clip.lift_x || 0) * (180 / Math.PI);
+      const liftMag = Math.sqrt((clip.lift_x || 0) ** 2 + (clip.lift_y || 0) ** 2);
+      if (liftMag > 0.02) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'soft-light';
+        ctx.fillStyle = `hsla(${liftHue + 180}, 60%, 50%, ${liftMag * 0.4})`;
+        ctx.fillRect(0, 0, width, height);
+        ctx.restore();
+      }
+    }
+
+    // Gain (Highlights)
+    if (clip.gain_x || clip.gain_y || clip.gain_m) {
+      const gainHue = Math.atan2(clip.gain_y || 0, clip.gain_x || 0) * (180 / Math.PI);
+      const gainMag = Math.sqrt((clip.gain_x || 0) ** 2 + (clip.gain_y || 0) ** 2);
+      if (gainMag > 0.02) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        ctx.fillStyle = `hsla(${gainHue + 180}, 75%, 65%, ${gainMag * 0.35})`;
+        ctx.fillRect(0, 0, width, height);
+        ctx.restore();
+      }
+    }
+
+    // Color Temperature / Tint (2000K - 11000K, 6500K neutral)
+    if (clip.temperature && clip.temperature !== 6500) {
+      const diff = clip.temperature - 6500;
+      ctx.save();
+      ctx.globalCompositeOperation = 'soft-light';
+      if (diff > 0) {
+        // Warmer (amber/orange)
+        const alpha = Math.min(0.35, (diff / 4500) * 0.35);
+        ctx.fillStyle = `rgba(255, 170, 70, ${alpha})`;
+      } else {
+        // Cooler (cyan/blue)
+        const alpha = Math.min(0.35, (Math.abs(diff) / 4500) * 0.35);
+        ctx.fillStyle = `rgba(70, 160, 255, ${alpha})`;
+      }
+      ctx.fillRect(0, 0, width, height);
+      ctx.restore();
+    }
+  }
+
+  drawTextLayer(ctx, t1Clip, width, height, currentTime) {
     ctx.save();
-    const text = t1Clip.text || t1Clip.name || '';
+    let text = t1Clip.text || t1Clip.name || '';
     const fontSize = t1Clip.fontSize || 42;
-    const fontFamily = t1Clip.fontFamily || '-apple-system, BlinkMacSystemFont, "SF Pro Display", Inter, sans-serif';
+    const fontFamily = t1Clip.fontFamily || 'Inter, sans-serif';
     const tracking = t1Clip.tracking || 2;
     const color = t1Clip.color || '#ffffff';
+    const fillMode = t1Clip.fillMode || 'color'; // 'color' | 'inverted' | 'footage'
+    const animation = t1Clip.animation || 'none'; // 'none' | 'typewriter' | 'pop' | 'fade'
+
+    // Typewriter animation timing
+    if (animation === 'typewriter') {
+      const elapsed = Math.max(0, currentTime - t1Clip.startTime);
+      const progress = Math.min(1, elapsed / (t1Clip.duration * 0.7));
+      const charsToShow = Math.floor(text.length * progress);
+      text = text.slice(0, charsToShow);
+    }
 
     ctx.font = `700 ${fontSize}px ${fontFamily}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    // Drop Shadow
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
-    ctx.shadowBlur = 18;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 4;
+    // Inverted difference fill mode
+    if (fillMode === 'inverted') {
+      ctx.globalCompositeOperation = 'difference';
+      ctx.fillStyle = '#ffffff';
+    } else {
+      // Drop Shadow
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
+      ctx.shadowBlur = 18;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 4;
+      ctx.fillStyle = color;
+    }
 
-    ctx.fillStyle = color;
     ctx.letterSpacing = `${tracking}px`;
 
     // Position text in lower third
     const textY = height * 0.82;
     ctx.fillText(text, width / 2, textY);
+    ctx.restore();
+  }
+
+  applyVignette(ctx, width, height, amount = 0.5) {
+    ctx.save();
+    const radius = Math.max(width, height) * 0.7;
+    const grad = ctx.createRadialGradient(
+      width / 2, height / 2, radius * 0.3,
+      width / 2, height / 2, radius
+    );
+    grad.addColorStop(0, 'rgba(0,0,0,0)');
+    grad.addColorStop(1, `rgba(0,0,0,${Math.min(0.85, amount * 0.85)})`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
+    ctx.restore();
+  }
+
+  applyGlow(ctx, width, height, intensity = 0.4) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    ctx.fillStyle = `rgba(255, 240, 210, ${intensity * 0.25})`;
+    ctx.fillRect(0, 0, width, height);
     ctx.restore();
   }
 
@@ -287,7 +423,6 @@ class PalmierVideoEngine {
   apply16mmFilmGrain(ctx, width, height) {
     ctx.save();
     ctx.fillStyle = 'rgba(255, 255, 255, 0.055)';
-    // Animated dynamic grain buffer
     const grainCount = 500;
     for (let i = 0; i < grainCount; i++) {
       const gx = Math.random() * width;
@@ -331,7 +466,6 @@ class PalmierVideoEngine {
         recorder.start(100);
 
         let elapsed = 0;
-        const totalSteps = 6;
         const interval = setInterval(() => {
           elapsed += 0.5;
           const pct = Math.min(100, Math.floor((elapsed / 3.0) * 100));
