@@ -26,6 +26,12 @@ export default function PalmierPreview({
 }) {
   const canvasRef = useRef(null);
   const [vuLevels, setVuLevels] = useState({ left: 35, right: 38 });
+  const [peakDb, setPeakDb] = useState({ left: -14.2, right: -13.6 });
+  const [isClipping, setIsClipping] = useState(false);
+
+  const handleResetClipping = () => {
+    setIsClipping(false);
+  };
 
   // Format frames to standard timecode HH:MM:SS:FF at sequence fps
   const formatTimecode = (seconds) => {
@@ -52,18 +58,28 @@ export default function PalmierPreview({
     if (isPlaying) {
       const updateVu = () => {
         const wf = videoEngine.getLiveWaveformData();
+        let leftPct = 35;
+        let rightPct = 38;
         if (wf) {
           const avgL = wf.slice(0, 20).reduce((a, b) => a + b, 0) / 20;
           const avgR = wf.slice(20, 40).reduce((a, b) => a + b, 0) / 20;
-          const leftPct = Math.min(100, Math.max(10, (avgL / 255) * 100));
-          const rightPct = Math.min(100, Math.max(10, (avgR / 255) * 100));
-          setVuLevels({ left: leftPct, right: rightPct });
+          leftPct = Math.min(100, Math.max(10, (avgL / 255) * 100));
+          rightPct = Math.min(100, Math.max(10, (avgR / 255) * 100));
         } else {
-          setVuLevels({
-            left: 40 + Math.random() * 30,
-            right: 42 + Math.random() * 30
-          });
+          leftPct = 40 + Math.random() * 30;
+          rightPct = 42 + Math.random() * 30;
         }
+
+        if (leftPct >= 96 || rightPct >= 96) {
+          setIsClipping(true);
+        }
+
+        const calcDbL = ((leftPct / 100) * 60 - 60).toFixed(1);
+        const calcDbR = ((rightPct / 100) * 60 - 60).toFixed(1);
+
+        setVuLevels({ left: leftPct, right: rightPct });
+        setPeakDb({ left: Number(calcDbL), right: Number(calcDbR) });
+
         animId = requestAnimationFrame(updateVu);
       };
       animId = requestAnimationFrame(updateVu);
@@ -115,7 +131,6 @@ export default function PalmierPreview({
         </div>
       </div>
 
-      {/* Main Multi-Layer Video Canvas Display */}
       <div className="preview-canvas-container">
         <div className="preview-canvas-frame" style={{ aspectRatio: frameAspect }}>
           <canvas 
@@ -124,6 +139,59 @@ export default function PalmierPreview({
             height={canvasH}
             className="preview-viewport-canvas"
           />
+        </div>
+
+        {/* Vertical Stereo Peak VU Meter (Sources/PalmierPro/Audio/AudioMeterView.swift parity) */}
+        <div 
+          className="preview-vertical-meter-strip"
+          onClick={handleResetClipping}
+          title="Master Stereo VU Meter — Click to reset clipping indicators"
+        >
+          {/* Top Clipping Indicator Boxes */}
+          <div className="meter-clip-indicators">
+            <div className={`clip-box ${isClipping ? 'clipped' : ''}`} title="L Channel Clip (>= 0dB)" />
+            <div className={`clip-box ${isClipping ? 'clipped' : ''}`} title="R Channel Clip (>= 0dB)" />
+          </div>
+
+          {/* Vertical Channels and Scale */}
+          <div className="meter-columns-wrap">
+            {/* Left Channel Column */}
+            <div className="meter-ch-track">
+              <div 
+                className="meter-ch-fill"
+                style={{ height: `${isPlaying ? vuLevels.left : 0}%` }}
+              />
+            </div>
+
+            {/* Right Channel Column */}
+            <div className="meter-ch-track">
+              <div 
+                className="meter-ch-fill"
+                style={{ height: `${isPlaying ? vuLevels.right : 0}%` }}
+              />
+            </div>
+
+            {/* dB Scale Rulers (0 down to -60 dB) */}
+            <div className="meter-db-ruler">
+              <span>0</span>
+              <span>-6</span>
+              <span>-12</span>
+              <span>-18</span>
+              <span>-24</span>
+              <span>-30</span>
+              <span>-42</span>
+              <span>-60</span>
+            </div>
+          </div>
+
+          {/* Bottom Channel Labels and Peak dB Readout */}
+          <div className="meter-channel-footer">
+            <span className="ch-tag">L</span>
+            <span className="ch-tag">R</span>
+          </div>
+          <div className="meter-db-readout">
+            {isPlaying ? `${peakDb.left.toFixed(0)} dB` : '-∞'}
+          </div>
         </div>
       </div>
 

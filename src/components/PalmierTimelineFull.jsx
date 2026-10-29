@@ -561,6 +561,22 @@ export default function PalmierTimelineFull({
                         <div className="audio-badge">
                           <span>{clip.name}</span>
                         </div>
+                        {/* Beat Ticks Overlay (Sources/PalmierPro/Timeline/ClipRenderer.swift:216-268 parity) */}
+                        <div className="audio-beat-ticks-overlay">
+                          {Array.from({ length: Math.max(1, Math.floor(clip.duration * 2)) }).map((_, bIdx) => {
+                            const isDownbeat = bIdx % 4 === 0;
+                            const tickLeftPx = (bIdx * 0.5) * zoomLevel;
+                            return (
+                              <div 
+                                key={bIdx}
+                                className={`timeline-beat-tick ${isDownbeat ? 'downbeat' : 'beat'}`}
+                                style={{ left: `${tickLeftPx}px` }}
+                                title={isDownbeat ? `Downbeat measure ${Math.floor(bIdx / 4) + 1}.1 (0.0s)` : `Beat ${(bIdx % 4) + 1}`}
+                              />
+                            );
+                          })}
+                        </div>
+
                         <div className="neon-green-waveform-bars">
                           {Array.from({ length: 60 }).map((_, i) => {
                             const dynamicH = liveWaveform 
@@ -588,6 +604,22 @@ export default function PalmierTimelineFull({
                       <div className="audio-badge">
                         <span>{t.label}</span>
                       </div>
+
+                      {/* Beat Ticks Overlay on Audio Track */}
+                      <div className="audio-beat-ticks-overlay">
+                        {Array.from({ length: Math.floor(totalDuration * 2) }).map((_, bIdx) => {
+                          const isDownbeat = bIdx % 4 === 0;
+                          const tickLeftPx = (bIdx * 0.5) * zoomLevel;
+                          return (
+                            <div 
+                              key={bIdx}
+                              className={`timeline-beat-tick ${isDownbeat ? 'downbeat' : 'beat'}`}
+                              style={{ left: `${tickLeftPx}px` }}
+                            />
+                          );
+                        })}
+                      </div>
+
                       <div className="neon-green-waveform-bars">
                         {Array.from({ length: 80 }).map((_, i) => {
                           const dynamicHeight = liveWaveform 

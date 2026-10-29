@@ -4015,6 +4015,241 @@ input, textarea {
   box-shadow: 0 0 4px rgba(245, 158, 11, 0.9);
 }
 
+/* ========================================================
+   VERTICAL STEREO AUDIO METER (AudioMeterView.swift parity)
+   ======================================================== */
+.preview-canvas-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  position: relative;
+  width: 100%;
+}
+
+.preview-vertical-meter-strip {
+  width: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #0d0d14;
+  border: 1px solid #222233;
+  border-radius: 6px;
+  padding: 6px 4px;
+  user-select: none;
+  cursor: pointer;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.6);
+}
+
+.meter-clip-indicators {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.clip-box {
+  width: 10px;
+  height: 6px;
+  background: #222233;
+  border-radius: 1px;
+  transition: background 0.15s ease;
+}
+
+.clip-box.clipped {
+  background: #ef4444;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.9);
+}
+
+.meter-columns-wrap {
+  display: flex;
+  gap: 4px;
+  height: 200px;
+  align-items: stretch;
+  position: relative;
+}
+
+.meter-ch-track {
+  width: 8px;
+  height: 100%;
+  background: #161622;
+  border-radius: 2px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.meter-ch-fill {
+  width: 100%;
+  background: linear-gradient(0deg, #10b981 0%, #10b981 60%, #f59e0b 82%, #ef4444 100%);
+  transition: height 0.06s ease;
+}
+
+.meter-db-ruler {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px;
+  color: #71717a;
+  height: 100%;
+  line-height: 1;
+  padding-left: 2px;
+}
+
+.meter-channel-footer {
+  display: flex;
+  width: 100%;
+  justify-content: flex-start;
+  gap: 8px;
+  padding-left: 3px;
+  margin-top: 5px;
+}
+
+.ch-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  color: #a1a1aa;
+}
+
+.meter-db-readout {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8.5px;
+  font-weight: 600;
+  color: #f59e0b;
+  margin-top: 4px;
+  text-align: center;
+}
+
+/* ========================================================
+   BEAT TICKS (ClipRenderer.swift:216-268 parity)
+   ======================================================== */
+.audio-beat-ticks-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.timeline-beat-tick.beat {
+  position: absolute;
+  top: 0;
+  width: 1px;
+  height: 7px;
+  background-color: rgba(249, 115, 22, 0.75);
+}
+
+.timeline-beat-tick.downbeat {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 14px;
+  background-color: #f97316;
+  box-shadow: 0 0 5px rgba(249, 115, 22, 0.8);
+}
+
+/* ========================================================
+   VISUAL AI SEARCH TOGGLE & BADGE (VisualSearch.swift)
+   ======================================================== */
+.media-visual-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #181824;
+  border: 1px solid #2d2d42;
+  color: #a1a1aa;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.media-visual-toggle-btn:hover {
+  background: #252538;
+  color: #fff;
+}
+
+.media-visual-toggle-btn.active {
+  background: #6366f1;
+  border-color: #818cf8;
+  color: #fff;
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.5);
+}
+
+.tile-badge-match {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  background: rgba(99, 102, 241, 0.92);
+  color: #ffffff;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+/* ========================================================
+   AUDIO BEAT DETECTOR CARD (BeatDetector.swift)
+   ======================================================== */
+.audio-beat-detector-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 10px;
+  background: #14141e;
+  border: 1px solid #242436;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
+.beat-status-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.beat-badge {
+  background: #f97316;
+  color: #fff;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+}
+
+.beat-label {
+  font-size: 11px;
+  color: #a1a1aa;
+}
+
+.beat-detect-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #222234;
+  border: 1px solid #34344d;
+  color: #e2e8f0;
+  font-size: 10.5px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.beat-detect-action-btn:hover {
+  background: #2d2d45;
+  color: #fff;
+}
+
 
 
 

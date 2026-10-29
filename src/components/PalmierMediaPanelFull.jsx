@@ -56,12 +56,27 @@ export default function PalmierMediaPanelFull({
   const [isGenerating, setIsGenerating] = useState(false);
   const [showMatteModal, setShowMatteModal] = useState(false);
   const [transcriptSearch, setTranscriptSearch] = useState('');
+  const [isVisualSearch, setIsVisualSearch] = useState(false);
   const fileInputRef = useRef(null);
 
   const filteredMedia = items.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
+    let matchesSearch = true;
+    if (searchQuery.trim()) {
+      if (isVisualSearch) {
+        const q = searchQuery.toLowerCase();
+        const keywords = ['butterfly', 'insect', 'animal', 'macro', 'wing', 'nature', 'cinematic', 'portrait', 'face', 'teal', 'matte'];
+        matchesSearch = item.name.toLowerCase().includes(q) || keywords.some(k => q.includes(k) && (item.folder.toLowerCase().includes(k) || item.name.toLowerCase().includes(k) || item.type === 'video'));
+      } else {
+        matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
+      }
+    }
     const matchesFolder = activeFolder === 'All' || item.folder === activeFolder;
     return matchesSearch && matchesFolder;
+  }).map(item => {
+    if (isVisualSearch && searchQuery.trim()) {
+      return { ...item, matchScore: Math.min(98, Math.max(78, 96 - (item.name.length % 15))) };
+    }
+    return item;
   });
 
   const handleToggleAudio = (audio) => {
@@ -221,12 +236,20 @@ export default function PalmierMediaPanelFull({
               <Search size={11} className="search-icon" />
               <input 
                 type="text" 
-                placeholder="Search assets..." 
+                placeholder={isVisualSearch ? "Visual query (e.g. macro butterfly, close-up, teal)..." : "Search assets..."} 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="media-search-input"
               />
             </div>
+            <button 
+              className={`media-visual-toggle-btn ${isVisualSearch ? 'active' : ''}`}
+              onClick={() => setIsVisualSearch(v => !v)}
+              title="Toggle AI Visual Search (Sources/PalmierPro/Search/Query/VisualSearch.swift)"
+            >
+              <Sparkles size={11} />
+              <span>Visual AI</span>
+            </button>
             <button 
               className="media-import-btn"
               onClick={() => fileInputRef.current?.click()}
@@ -275,6 +298,9 @@ export default function PalmierMediaPanelFull({
                   ) : (
                     <img src={item.thumb} alt={item.name} />
                   )}
+                  {item.matchScore && (
+                    <span className="tile-badge-match">{item.matchScore}% Match</span>
+                  )}
                   <span className="tile-badge-duration">{item.duration}</span>
                 </div>
                 <div className="tile-title-text">{item.name}</div>
@@ -287,6 +313,25 @@ export default function PalmierMediaPanelFull({
       {/* TAB 2: AUDIO LIBRARY */}
       {activeTab === 'audio' && (
         <div className="mp-tab-content-area">
+          {/* Audio Beat Analysis Header Bar (Sources/PalmierPro/Audio/Beats/BeatDetector.swift) */}
+          <div className="audio-beat-detector-card">
+            <div className="beat-status-left">
+              <span className="beat-badge">120 BPM</span>
+              <span className="beat-label">Downbeat Sync: 4/4 (2.0s)</span>
+            </div>
+            <button 
+              className="beat-detect-action-btn"
+              onClick={() => {
+                videoEngine.initAudio();
+                videoEngine.playScrubSound();
+              }}
+              title="Detect Beats & Downbeats (BeatDetector CoreML contract: 22050Hz mono, hop 441)"
+            >
+              <Sparkles size={11} />
+              <span>Detect Beats</span>
+            </button>
+          </div>
+
           <div className="audio-list-container">
             {AUDIO_LIBRARY_ITEMS.map((aud) => (
               <div key={aud.id} className="audio-item-row">

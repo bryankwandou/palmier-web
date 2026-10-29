@@ -102,6 +102,35 @@ export default function App() {
         e.preventDefault();
         videoEngine.initAudio();
         setIsPlaying((p) => !p);
+      } else if (e.code === 'KeyK') {
+        e.preventDefault();
+        setIsPlaying(false);
+      } else if (e.code === 'KeyL') {
+        e.preventDefault();
+        videoEngine.initAudio();
+        setIsPlaying(true);
+      } else if (e.code === 'KeyJ') {
+        e.preventDefault();
+        videoEngine.playScrubSound();
+        setCurrentTime((prev) => Math.max(0, prev - 0.5));
+      } else if (e.code === 'Digit1') {
+        e.preventDefault();
+        if (selectedClipId) handleUpdateClip(selectedClipId, { angle: 'Cam 1' });
+      } else if (e.code === 'Digit2') {
+        e.preventDefault();
+        if (selectedClipId) handleUpdateClip(selectedClipId, { angle: 'Cam 2' });
+      } else if (e.code === 'Digit3') {
+        e.preventDefault();
+        if (selectedClipId) handleUpdateClip(selectedClipId, { angle: 'Cam 3' });
+      } else if (e.code === 'Digit4') {
+        e.preventDefault();
+        if (selectedClipId) handleUpdateClip(selectedClipId, { angle: 'Cam 4' });
+      } else if (e.code === 'KeyM') {
+        e.preventDefault();
+        videoEngine.playScrubSound();
+      } else if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
+        e.preventDefault();
+        handleSplitAtPlayhead();
       } else if (e.code === 'ArrowLeft') {
         e.preventDefault();
         videoEngine.playScrubSound();
