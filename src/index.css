@@ -4250,6 +4250,100 @@ input, textarea {
   color: #fff;
 }
 
+/* ========================================================
+   MEDIA ACTION ROW & FOLDER CHIPS (MediaPanel.swift parity)
+   ======================================================== */
+.media-action-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.media-search-input-wrap {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.media-search-input {
+  width: 100%;
+  background: #151522;
+  border: 1px solid #28283c;
+  border-radius: 4px;
+  padding: 4px 6px 4px 22px;
+  color: #e2e8f0;
+  font-size: 11px;
+  outline: none;
+}
+
+.media-search-input:focus {
+  border-color: #6366f1;
+}
+
+.media-search-input-wrap .search-icon {
+  position: absolute;
+  left: 6px;
+  color: #71717a;
+  pointer-events: none;
+}
+
+.media-import-btn,
+.media-matte-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #181824;
+  border: 1px solid #2a2a3d;
+  color: #cbd5e1;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.media-import-btn:hover,
+.media-matte-btn:hover {
+  background: #232336;
+  border-color: #3f3f5a;
+  color: #ffffff;
+}
+
+.media-folder-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.folder-chip {
+  background: #14141e;
+  border: 1px solid #222233;
+  color: #94a3b8;
+  font-size: 10.5px;
+  padding: 2.5px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.folder-chip:hover {
+  background: #1e1e2c;
+  color: #e2e8f0;
+}
+
+.folder-chip.active {
+  background: #2c2c40;
+  border-color: #4a4a68;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+
 
 
 
