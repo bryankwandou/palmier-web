@@ -1384,3 +1384,39 @@ input, textarea {
   gap: 6px;
   cursor: pointer;
 }
+
+/* Interactive Timeline Clip Selection */
+.v1-timeline-clip.selected {
+  border: 2px solid #f59e0b !important;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.6) !important;
+  z-index: 10;
+}
+
+.interactive-shot {
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.interactive-shot:hover {
+  border-color: #6366f1;
+  transform: translateX(2px);
+}
+
+.agent-tool-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  font-weight: 600;
+  color: #a78bfa;
+  margin-bottom: 5px;
+  background: rgba(167, 139, 250, 0.12);
+  padding: 2px 6px;
+  border-radius: 3px;
+  width: fit-content;
+}
+
+.tool-check {
+  color: #10b981;
+}
+

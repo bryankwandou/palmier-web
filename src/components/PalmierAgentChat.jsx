@@ -1,33 +1,54 @@
 import React, { useState } from 'react';
-import { X, Plus, Clock, ChevronDown, Send } from 'lucide-react';
+import { X, Plus, Clock, ChevronDown, CheckCircle2 } from 'lucide-react';
 import { AGENT_CHAT_HISTORY } from '../data/palmierSourceData';
 
-export default function PalmierAgentChat({ onAgentAction }) {
+export default function PalmierAgentChat({ onAgentToolCall }) {
   const [messages, setMessages] = useState(AGENT_CHAT_HISTORY);
   const [inputVal, setInputVal] = useState('');
 
   const handleSend = () => {
     if (!inputVal.trim()) return;
+    const shotNum = `${messages.filter(m => !m.isAgent).length + 19}`;
     const newMsg = {
       id: `user-${Date.now()}`,
-      number: `${messages.length + 19}`,
-      title: inputVal,
+      number: shotNum,
+      title: inputVal.slice(0, 40),
       prompt: inputVal
     };
     setMessages((prev) => [...prev, newMsg]);
     setInputVal('');
 
+    // Trigger tool execution via PalmierMcpEngine
     setTimeout(() => {
+      if (onAgentToolCall) {
+        onAgentToolCall('add_clips', {
+          name: `shot_${shotNum}`,
+          prompt: inputVal,
+          thumb: '/tour-hero.jpg',
+          duration: 3.0
+        });
+      }
+
       setMessages((prev) => [
         ...prev,
         {
           id: `agent-${Date.now()}`,
           isAgent: true,
-          text: `Generated shot sequence matching prompt and inserted into Track V1.`
+          toolExecuted: 'add_clips',
+          text: `Executed add_clips tool: Generated shot sequence matching prompt and inserted into Track V1.`
         }
       ]);
-      if (onAgentAction) onAgentAction();
-    }, 1000);
+    }, 800);
+  };
+
+  const handleShotClick = (shot) => {
+    if (onAgentToolCall) {
+      onAgentToolCall('apply_color', {
+        clipName: shot.title,
+        solarize: true,
+        grain: true
+      });
+    }
   };
 
   return (
@@ -58,13 +79,24 @@ export default function PalmierAgentChat({ onAgentAction }) {
           if (item.isAgent) {
             return (
               <div key={item.id} className="native-agent-response-bubble">
+                {item.toolExecuted && (
+                  <div className="agent-tool-badge">
+                    <CheckCircle2 size={10} className="tool-check" />
+                    <span>MCP: {item.toolExecuted}</span>
+                  </div>
+                )}
                 <p>{item.text}</p>
               </div>
             );
           }
 
           return (
-            <div key={item.id} className="native-agent-shot-item">
+            <div 
+              key={item.id} 
+              className="native-agent-shot-item interactive-shot"
+              onClick={() => handleShotClick(item)}
+              title="Click to apply shot styling via MCP"
+            >
               <div className="shot-header">
                 <span className="shot-number">{item.number}.</span>
                 <span className="shot-title">{item.title}</span>

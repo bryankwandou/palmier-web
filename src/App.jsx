@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import PalmierTopBar from './components/PalmierTopBar';
 import PalmierAgentChat from './components/PalmierAgentChat';
 import PalmierNavStrip from './components/PalmierNavStrip';
@@ -6,16 +6,43 @@ import PalmierMediaBin from './components/PalmierMediaBin';
 import PalmierPreview from './components/PalmierPreview';
 import PalmierInspector from './components/PalmierInspector';
 import PalmierTimeline from './components/PalmierTimeline';
-import { PALMIER_PROJECT } from './data/palmierSourceData';
-import { Check, Download, X } from 'lucide-react';
+import { PALMIER_PROJECT, TIMELINE_CLIPS_SOURCE } from './data/palmierSourceData';
+import { PalmierMcpEngine } from './services/palmierMcpService';
+import { Download, X } from 'lucide-react';
 
 export default function App() {
   const [projectName, setProjectName] = useState(PALMIER_PROJECT.name);
   const [currentTime, setCurrentTime] = useState(PALMIER_PROJECT.currentFrame / 24); // 7.958s -> 00:00:07:23
   const [isPlaying, setIsPlaying] = useState(false);
+  const [clips, setClips] = useState(TIMELINE_CLIPS_SOURCE);
+  const [selectedClipId, setSelectedClipId] = useState('v-clip-4'); // currently visible clip at 7.958s
   const [exportModal, setExportModal] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
-  const totalDuration = PALMIER_PROJECT.totalDuration; // 33.541s -> 00:00:33:13
+
+  // Compute total duration dynamically from clips
+  const totalDuration = useMemo(() => {
+    const maxEnd = Math.max(33.541, ...clips.map(c => c.startTime + c.duration));
+    return maxEnd;
+  }, [clips]);
+
+  // Current active clip under playhead
+  const currentClip = useMemo(() => {
+    const underPlayhead = clips.find(c => c.trackId === 'V1' && currentTime >= c.startTime && currentTime <= (c.startTime + c.duration));
+    return underPlayhead || clips.find(c => c.id === selectedClipId) || clips[0];
+  }, [clips, currentTime, selectedClipId]);
+
+  // Selected clip for Inspector
+  const selectedClip = useMemo(() => {
+    return clips.find(c => c.id === selectedClipId) || currentClip;
+  }, [clips, selectedClipId, currentClip]);
+
+  // Initialize Palmier MCP Engine
+  const mcpEngine = useMemo(() => {
+    return new PalmierMcpEngine(
+      { projectName, clips, currentTime, totalDuration },
+      setClips
+    );
+  }, [projectName, clips, currentTime, totalDuration]);
 
   // 24fps playback loop
   const lastTimeRef = useRef(performance.now());
@@ -43,7 +70,7 @@ export default function App() {
     return () => cancelAnimationFrame(animId);
   }, [isPlaying, totalDuration]);
 
-  // Spacebar play/pause shortcut
+  // Spacebar and shuttle shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
@@ -67,6 +94,60 @@ export default function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [totalDuration]);
+
+  // Razor split handler
+  const handleSplitClip = (clipId, splitTime) => {
+    const target = clips.find(c => c.id === clipId);
+    if (!target) return;
+    const dur1 = splitTime - target.startTime;
+    const dur2 = target.duration - dur1;
+    if (dur1 <= 0.2 || dur2 <= 0.2) return;
+
+    const clipA = { ...target, duration: dur1 };
+    const clipB = {
+      ...target,
+      id: `v-clip-${Date.now()}`,
+      startTime: splitTime,
+      duration: dur2
+    };
+
+    setClips(prev => prev.map(c => c.id === clipId ? clipA : c).concat(clipB));
+    setSelectedClipId(clipB.id);
+  };
+
+  // Delete clip handler
+  const handleDeleteClip = (clipId) => {
+    setClips(prev => prev.filter(c => c.id !== clipId));
+    setSelectedClipId(null);
+  };
+
+  // Update clip properties from Inspector
+  const handleUpdateClip = (clipId, newProps) => {
+    setClips(prev => prev.map(c => c.id === clipId ? { ...c, ...newProps } : c));
+  };
+
+  // Agent MCP tool execution callback
+  const handleAgentToolCall = (toolName, args) => {
+    if (toolName === 'add_clips') {
+      const newClip = {
+        id: `v-clip-${Date.now()}`,
+        name: args.name || 'juicyma',
+        startTime: currentTime,
+        duration: args.duration || 2.4,
+        trackId: 'V1',
+        thumb: args.thumb || '/welcome-butterfly.jpg'
+      };
+      setClips(prev => [...prev, newClip]);
+      setSelectedClipId(newClip.id);
+    } else if (toolName === 'apply_color') {
+      if (selectedClipId) {
+        handleUpdateClip(selectedClipId, {
+          solarize: args.solarize,
+          grain: args.grain
+        });
+      }
+    }
+  };
 
   const handleStartExport = () => {
     setExportProgress(0);
@@ -95,16 +176,32 @@ export default function App() {
       {/* Main Workspace Row: 5-panel layout matching palmier-ui.png */}
       <div className="palmier-main-workspace-row">
         {/* Left Agent Chat Sidebar */}
-        <PalmierAgentChat />
+        <PalmierAgentChat onAgentToolCall={handleAgentToolCall} />
 
         {/* 36px Vertical Nav Strip */}
         <PalmierNavStrip />
 
         {/* Media Library Bin & Seedance 2 Generation Studio */}
-        <PalmierMediaBin />
+        <PalmierMediaBin 
+          onSelectMedia={(item) => {
+            handleAgentToolCall('add_clips', {
+              name: item.name,
+              thumb: item.thumb,
+              duration: 2.5
+            });
+          }}
+          onGenerate={(newItem) => {
+            handleAgentToolCall('add_clips', {
+              name: newItem.name,
+              thumb: newItem.thumb,
+              duration: 3.0
+            });
+          }}
+        />
 
         {/* Center Preview Monitor */}
         <PalmierPreview 
+          currentClip={currentClip}
           currentTime={currentTime}
           totalDuration={totalDuration}
           isPlaying={isPlaying}
@@ -114,13 +211,21 @@ export default function App() {
         />
 
         {/* Right Inspector */}
-        <PalmierInspector />
+        <PalmierInspector 
+          selectedClip={selectedClip}
+          onUpdateClip={handleUpdateClip}
+        />
       </div>
 
       {/* Bottom Timeline with Purple Clips, Filmstrips, and Neon Green Audio Waveforms */}
       <PalmierTimeline 
+        clips={clips}
         currentTime={currentTime}
         totalDuration={totalDuration}
+        selectedClipId={selectedClipId}
+        onSelectClip={(id) => setSelectedClipId(id)}
+        onSplitClip={handleSplitClip}
+        onDeleteClip={handleDeleteClip}
         onSeek={(t) => setCurrentTime(t)}
       />
 

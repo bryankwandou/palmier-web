@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React from 'react';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -9,11 +9,11 @@ import {
   Pause, 
   StepForward, 
   SkipForward, 
-  Camera,
-  Maximize2
+  Camera
 } from 'lucide-react';
 
 export default function PalmierPreview({ 
+  currentClip,
   currentTime = 7.958, // 00:00:07:23 at 24fps
   totalDuration = 33.541, // 00:00:33:13
   isPlaying = false,
@@ -32,6 +32,22 @@ export default function PalmierPreview({
     return `${pad(hrs)}:${pad(mins)}:${pad(secs)}:${pad(frames)}`;
   };
 
+  const activeThumb = currentClip?.thumb || '/welcome-butterfly.jpg';
+
+  // Compute CSS filter from active clip's AI color grade & Sabattier effect
+  let filterStyle = 'none';
+  if (currentClip?.solarize) {
+    filterStyle = 'invert(0.75) contrast(2.5) hue-rotate(190deg) saturate(1.8)';
+  } else if (currentClip?.grain) {
+    filterStyle = 'contrast(1.4) brightness(0.95) saturate(0.8)';
+  }
+
+  const transformStyle = {
+    transform: `scale(${(currentClip?.scale || 100) / 100}) translate(${currentClip?.posX || 0}px, ${currentClip?.posY || 0}px)`,
+    filter: filterStyle,
+    transition: 'transform 0.1s ease, filter 0.2s ease'
+  };
+
   return (
     <div className="palmier-preview-monitor">
       {/* Top Preview Bar */}
@@ -48,9 +64,10 @@ export default function PalmierPreview({
       <div className="preview-canvas-container">
         <div className="preview-canvas-frame">
           <img 
-            src="/welcome-butterfly.jpg" 
+            src={activeThumb} 
             alt="Preview Monitor" 
             className="preview-viewport-image"
+            style={transformStyle}
           />
         </div>
       </div>

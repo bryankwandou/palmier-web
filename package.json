@@ -1,11 +1,14 @@
 {
   "name": "palmier-web",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.7.6",
   "type": "module",
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "mcp": "node server/mcpServer.js",
+    "electron:dev": "electron .",
     "lint": "oxlint",
     "preview": "vite preview"
   },
@@ -18,6 +21,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "electron": "^41.0.0",
     "oxlint": "^1.89.0",
     "vite": "^8.3.5"
   }

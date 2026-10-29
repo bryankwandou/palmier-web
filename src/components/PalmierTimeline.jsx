@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { 
   RotateCcw, 
   RotateCw, 
@@ -13,17 +13,36 @@ import {
   Lock,
   Volume2
 } from 'lucide-react';
-import { TIMELINE_CLIPS_SOURCE } from '../data/palmierSourceData';
 
 export default function PalmierTimeline({ 
+  clips = [],
   currentTime = 7.958, 
   totalDuration = 33.541, 
+  selectedClipId,
+  onSelectClip,
+  onSplitClip,
+  onDeleteClip,
   onSeek 
 }) {
-  const [clips, setClips] = useState(TIMELINE_CLIPS_SOURCE);
   const [activeTool, setActiveTool] = useState('select'); // 'select' | 'razor' | 'ripple' | 'range' | 'text'
   const [zoomLevel, setZoomLevel] = useState(30); // pixels per second
   const timelineTracksRef = useRef(null);
+
+  // Keyboard shortcut listeners
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.key === 'v' || e.key === 'V') {
+        setActiveTool('select');
+      } else if (e.key === 'c' || e.key === 'C') {
+        setActiveTool('razor');
+      } else if ((e.key === 'Delete' || e.key === 'Backspace') && selectedClipId) {
+        if (onDeleteClip) onDeleteClip(selectedClipId);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedClipId, onDeleteClip]);
 
   const rulerTimepoints = [
     { sec: 0, label: '00:00:00:00' },
@@ -44,6 +63,19 @@ export default function PalmierTimeline({
     const clickX = e.clientX - rect.left;
     const newSec = Math.max(0, Math.min(totalDuration, clickX / zoomLevel));
     if (onSeek) onSeek(newSec);
+  };
+
+  const handleClipClick = (e, clip) => {
+    e.stopPropagation();
+    if (activeTool === 'razor') {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const splitOffsetSec = clickX / zoomLevel;
+      const splitTime = clip.startTime + splitOffsetSec;
+      if (onSplitClip) onSplitClip(clip.id, splitTime);
+    } else {
+      if (onSelectClip) onSelectClip(clip.id);
+    }
   };
 
   const playheadX = currentTime * zoomLevel;
@@ -68,7 +100,7 @@ export default function PalmierTimeline({
           <button 
             className={`tb-btn ${activeTool === 'razor' ? 'active' : ''}`}
             onClick={() => setActiveTool('razor')}
-            title="Razor Tool (C)"
+            title="Razor Tool (C) — Click clip to cut"
           >
             <Scissors size={13} />
           </button>
@@ -179,14 +211,21 @@ export default function PalmierTimeline({
           <div className="timeline-lanes-container" style={{ width: `${totalDuration * zoomLevel + 200}px` }}>
             {/* V1 Video Track Lane */}
             <div className="timeline-lane lane-v1">
-              {clips.map((clip) => {
+              {clips.filter(c => c.trackId === 'V1').map((clip) => {
                 const widthPx = clip.duration * zoomLevel;
                 const leftPx = clip.startTime * zoomLevel;
+                const isSelected = clip.id === selectedClipId;
                 return (
                   <div 
                     key={clip.id} 
-                    className="v1-timeline-clip"
-                    style={{ left: `${leftPx}px`, width: `${widthPx}px` }}
+                    className={`v1-timeline-clip ${isSelected ? 'selected' : ''}`}
+                    style={{ 
+                      left: `${leftPx}px`, 
+                      width: `${widthPx}px`,
+                      cursor: activeTool === 'razor' ? 'crosshair' : 'pointer'
+                    }}
+                    onClick={(e) => handleClipClick(e, clip)}
+                    title={`${clip.name} (Click to ${activeTool === 'razor' ? 'cut' : 'select'})`}
                   >
                     {/* Purple Clip Header Badge */}
                     <div className="v1-clip-badge">
