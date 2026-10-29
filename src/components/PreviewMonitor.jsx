@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Play, 
   Pause, 
@@ -12,7 +12,8 @@ import {
   Tv,
   Grid,
   Maximize2,
-  Repeat
+  Repeat,
+  Sparkles
 } from 'lucide-react';
 
 export default function PreviewMonitor({
@@ -22,33 +23,65 @@ export default function PreviewMonitor({
   onTogglePlay,
   onSeek,
   fps = 30,
+  aspectRatio = '16:9',
   activeVideoClip,
   activeTextClip,
-  selectedClip
+  selectedClip,
+  onUpdateClip
 }) {
   const [showSafeGuides, setShowSafeGuides] = useState(false);
   const [canvasZoom, setCanvasZoom] = useState('fit'); // 'fit' | '50%' | '100%' | '200%'
   const [isLooping, setIsLooping] = useState(false);
-  const [playbackSpeed, setPlaybackSpeed] = useState(1); // J-K-L shuttle speed
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // VU meter simulated decibel levels
+  // Real HTML5 Video element ref
+  const videoRef = useRef(null);
+  const monitorContainerRef = useRef(null);
+
+  // VU meter levels
   const [vuLeft, setVuLeft] = useState(-18);
   const [vuRight, setVuRight] = useState(-16);
 
+  // Synchronize HTML5 video element with Timeline Playhead & State
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !activeVideoClip || !activeVideoClip.mediaUrl) return;
+
+    const clipLocalTime = Math.max(0, currentTime - activeVideoClip.startTime);
+
+    // Sync time if drifted more than 0.25 seconds
+    if (Math.abs(video.currentTime - clipLocalTime) > 0.25) {
+      video.currentTime = clipLocalTime;
+    }
+
+    if (isPlaying) {
+      video.playbackRate = playbackSpeed;
+      video.play().catch(() => {
+        // Autoplay policy fallback: mute and play
+        video.muted = true;
+        video.play().catch(() => {});
+      });
+    } else {
+      video.pause();
+    }
+  }, [currentTime, isPlaying, activeVideoClip, playbackSpeed]);
+
+  // Handle VU meter audio simulation during playback
   useEffect(() => {
     let interval;
-    if (isPlaying) {
+    if (isPlaying && activeVideoClip) {
       interval = setInterval(() => {
-        // Dynamic jitter around -12dB to -3dB
-        setVuLeft(-12 + (Math.random() * 8 - 4));
-        setVuRight(-11 + (Math.random() * 8 - 4));
-      }, 80);
+        const base = (activeVideoClip.volume ?? 1) > 0 ? -14 : -48;
+        setVuLeft(base + (Math.random() * 8 - 4));
+        setVuRight(base + 1 + (Math.random() * 8 - 4));
+      }, 75);
     } else {
       setVuLeft(-48);
       setVuRight(-48);
     }
     return () => clearInterval(interval);
-  }, [isPlaying]);
+  }, [isPlaying, activeVideoClip]);
 
   const formatTimecode = (seconds) => {
     const s = Math.max(0, seconds);
@@ -64,7 +97,7 @@ export default function PreviewMonitor({
     onSeek(newTime);
   };
 
-  // J-K-L Shuttle logic
+  // J-K-L Shuttle control
   const handleShuttle = (direction) => {
     if (direction === 'K') {
       if (isPlaying) onTogglePlay();
@@ -73,13 +106,14 @@ export default function PreviewMonitor({
       if (!isPlaying) onTogglePlay();
       setPlaybackSpeed((prev) => Math.min(4, prev * 2));
     } else if (direction === 'J') {
-      // Reverse step
       stepFrame(-10);
     }
   };
 
+  const isVertical = aspectRatio === '9:16';
+
   return (
-    <div className="preview-container">
+    <div className={`preview-container ${isFullscreen ? 'fullscreen-preview' : ''}`} ref={monitorContainerRef}>
       {/* Top Preview Canvas Toolbar */}
       <div className="preview-canvas-toolbar">
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -88,7 +122,7 @@ export default function PreviewMonitor({
             onChange={(e) => setCanvasZoom(e.target.value)}
             className="preview-select"
           >
-            <option value="fit">Fit (Auto Scale)</option>
+            <option value="fit">Fit ({isVertical ? '9:16 Vertical' : '16:9 Standard'})</option>
             <option value="50%">50%</option>
             <option value="100%">100% (Pixel Native)</option>
             <option value="200%">200%</option>
@@ -99,21 +133,38 @@ export default function PreviewMonitor({
             onClick={() => setShowSafeGuides((g) => !g)}
             title="Toggle Title & Action Safe Guides (80% / 90%)"
           >
-            <Grid size={12} />
+            <Grid size={11} />
             <span>Safe Guides</span>
           </button>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '10px', color: 'var(--text-muted)' }}>
-          <span>Color Space: Rec.709 10-bit</span>
-          <span className="resolution-badge">1920x1080 @ 30fps</span>
+          <span>Color: Rec.709 10-bit</span>
+          <span className="resolution-badge">
+            {isVertical ? '1080x1920 (9:16)' : '1920x1080 (16:9)'} @ {fps}fps
+          </span>
+
+          <button 
+            className="btn-icon" 
+            style={{ width: '22px', height: '22px', padding: 0 }}
+            title="Toggle Maximize Preview Monitor"
+            onClick={() => setIsFullscreen(!isFullscreen)}
+          >
+            <Maximize2 size={12} />
+          </button>
         </div>
       </div>
 
       {/* Main Canvas & VU Meter Split View */}
       <div className="preview-canvas-area">
-        <div className="preview-screen-wrapper">
-          {activeVideoClip?.posterUrl ? (
+        <div 
+          className="preview-screen-wrapper"
+          style={{
+            aspectRatio: isVertical ? '9 / 16' : '16 / 9',
+            maxWidth: isVertical ? '340px' : '100%',
+          }}
+        >
+          {activeVideoClip ? (
             <div 
               style={{
                 position: 'relative',
@@ -125,17 +176,37 @@ export default function PreviewMonitor({
                 overflow: 'hidden'
               }}
             >
-              <img 
-                src={activeVideoClip.posterUrl} 
-                alt={activeVideoClip.name}
-                className="preview-canvas"
-                style={{
-                  filter: `contrast(${100 + (activeVideoClip.contrast || 0)}%) saturate(${100 + (activeVideoClip.saturation || 0)}%) brightness(${100 + (activeVideoClip.exposure || 0)}%)`,
-                  transform: `scale(${activeVideoClip.scale || 1}) translate(${activeVideoClip.posX || 0}px, ${activeVideoClip.posY || 0}px) rotate(${activeVideoClip.rotation || 0}deg)`,
-                  opacity: activeVideoClip.opacity ?? 1,
-                  transition: 'filter 0.05s ease'
-                }}
-              />
+              {/* Real HTML5 Video Player */}
+              {activeVideoClip.mediaUrl ? (
+                <video
+                  ref={videoRef}
+                  src={activeVideoClip.mediaUrl}
+                  poster={activeVideoClip.posterUrl}
+                  playsInline
+                  loop={isLooping}
+                  className="preview-canvas"
+                  style={{
+                    filter: `contrast(${100 + (activeVideoClip.contrast || 0)}%) saturate(${100 + (activeVideoClip.saturation || 0)}%) brightness(${100 + (activeVideoClip.exposure || 0)}%) blur(${activeVideoClip.blur || 0}px)`,
+                    transform: `scale(${activeVideoClip.scale || 1}) translate(${activeVideoClip.posX || 0}px, ${activeVideoClip.posY || 0}px) rotate(${activeVideoClip.rotation || 0}deg)`,
+                    opacity: activeVideoClip.opacity ?? 1,
+                    transition: 'filter 0.05s ease'
+                  }}
+                  onEnded={() => {
+                    if (isLooping) onSeek(0);
+                  }}
+                />
+              ) : (
+                <img 
+                  src={activeVideoClip.posterUrl} 
+                  alt={activeVideoClip.name}
+                  className="preview-canvas"
+                  style={{
+                    filter: `contrast(${100 + (activeVideoClip.contrast || 0)}%) saturate(${100 + (activeVideoClip.saturation || 0)}%) brightness(${100 + (activeVideoClip.exposure || 0)}%) blur(${activeVideoClip.blur || 0}px)`,
+                    transform: `scale(${activeVideoClip.scale || 1}) translate(${activeVideoClip.posX || 0}px, ${activeVideoClip.posY || 0}px) rotate(${activeVideoClip.rotation || 0}deg)`,
+                    opacity: activeVideoClip.opacity ?? 1,
+                  }}
+                />
+              )}
 
               {/* Bounding Box Transform Handles when clip is selected */}
               {selectedClip && selectedClip.id === activeVideoClip.id && (
@@ -154,8 +225,8 @@ export default function PreviewMonitor({
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', color: 'var(--text-disabled)' }}>
-              <Tv size={38} strokeWidth={1.5} />
-              <span style={{ fontSize: '11px', letterSpacing: '0.5px', fontWeight: '500' }}>PALMIER PLAYHEAD IDLE</span>
+              <Tv size={36} strokeWidth={1.5} />
+              <span style={{ fontSize: '10.5px', letterSpacing: '0.5px', fontWeight: '500' }}>PALMIER PLAYHEAD IDLE</span>
             </div>
           )}
 
@@ -176,20 +247,21 @@ export default function PreviewMonitor({
             <div 
               style={{
                 position: 'absolute',
-                bottom: '32px',
+                bottom: isVertical ? '48px' : '28px',
                 left: '50%',
                 transform: 'translateX(-50%)',
                 color: activeTextClip.color || '#fff',
-                fontSize: `${activeTextClip.fontSize || 26}px`,
+                fontSize: isVertical ? '20px' : `${activeTextClip.fontSize || 24}px`,
                 fontFamily: activeTextClip.fontFamily || 'Inter, sans-serif',
-                fontWeight: activeTextClip.fontWeight || '700',
-                textShadow: '0 2px 12px rgba(0,0,0,0.9), 0 0 24px rgba(0,0,0,0.8)',
-                padding: '8px 20px',
+                fontWeight: activeTextClip.fontWeight || '800',
+                textShadow: '0 2px 14px rgba(0,0,0,0.9), 0 0 24px rgba(0,0,0,0.85)',
+                padding: '6px 16px',
                 borderRadius: '4px',
                 textAlign: 'center',
                 letterSpacing: '0.5px',
                 pointerEvents: 'none',
-                zIndex: 10
+                zIndex: 10,
+                width: '85%'
               }}
             >
               {activeTextClip.text}
@@ -198,11 +270,11 @@ export default function PreviewMonitor({
 
           {/* Active Clip Name HUD */}
           <div className="preview-hud">
-            {activeVideoClip ? `${activeVideoClip.name} [${activeVideoClip.model || 'Source Master'}]` : 'CANVAS STANDBY'}
+            {activeVideoClip ? `${activeVideoClip.name} [${activeVideoClip.model || 'AVPlayer 4K'}]` : 'PALMIER ENGINE READY'}
           </div>
         </div>
 
-        {/* Stereo VU Peak Audio Meter on Right side matching NLE monitors */}
+        {/* Stereo VU Peak Audio Meter on Right side */}
         <div className="preview-vu-meter">
           <div className="vu-channel">
             <span className="vu-channel-label">L</span>
@@ -233,7 +305,7 @@ export default function PreviewMonitor({
           <span className="timecode-total">/ {formatTimecode(totalDuration)}</span>
         </div>
 
-        {/* Shuttle and Frame Step buttons */}
+        {/* Transport Buttons: Step Back, Play/Pause, Step Forward */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <button 
             className="btn-icon" 
@@ -256,7 +328,7 @@ export default function PreviewMonitor({
             onClick={onTogglePlay}
             title="Play / Pause (Space / K)"
           >
-            {isPlaying ? <Pause size={15} /> : <Play size={15} style={{ marginLeft: '2px' }} />}
+            {isPlaying ? <Pause size={14} /> : <Play size={14} style={{ marginLeft: '2px' }} />}
           </button>
 
           <button 
@@ -280,13 +352,13 @@ export default function PreviewMonitor({
             onClick={() => setIsLooping((l) => !l)}
             title="Toggle Loop Playback"
           >
-            <Repeat size={13} color={isLooping ? 'var(--accent-blue)' : 'inherit'} />
+            <Repeat size={12} color={isLooping ? 'var(--accent-blue)' : 'inherit'} />
           </button>
         </div>
 
-        {/* Playback speed indicator */}
-        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
-          {playbackSpeed > 1 ? `${playbackSpeed}x` : '1.0x'}
+        {/* Speed / Format readout */}
+        <div style={{ fontSize: '10.5px', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
+          {playbackSpeed > 1 ? `${playbackSpeed}x SPEED` : '1.0x PLAY'}
         </div>
       </div>
     </div>

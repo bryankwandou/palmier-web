@@ -6,7 +6,9 @@ import {
   Settings, 
   Maximize2, 
   Bot,
-  LayoutTemplate
+  Sliders,
+  PanelLeftClose,
+  PanelRightClose
 } from 'lucide-react';
 import { WORKSPACE_LAYOUTS } from '../data/projectData';
 
@@ -19,6 +21,10 @@ export default function Header({
   setResolution, 
   fps, 
   setFps,
+  showMediaPanel,
+  setShowMediaPanel,
+  showInspector,
+  setShowInspector,
   showAgentSidebar,
   setShowAgentSidebar,
   onExport
@@ -27,7 +33,7 @@ export default function Header({
     <header className="palmier-header">
       <div className="header-left">
         <div className="app-brand">
-          <Film size={20} color="#3b82f6" />
+          <Film size={18} color="#3b82f6" />
           <span>PALMIER</span>
           <span className="brand-badge">PRO</span>
         </div>
@@ -40,7 +46,7 @@ export default function Header({
           title="Click to rename project"
         />
 
-        {/* Workspace Layouts Switcher */}
+        {/* Workspace Layouts Switcher matching PalmierPro WorkspaceLayout.swift */}
         <div className="layout-presets-bar">
           {WORKSPACE_LAYOUTS.map((layout) => (
             <button
@@ -60,19 +66,11 @@ export default function Header({
           <span>MCP :19789 (LIVE)</span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <select 
             value={resolution} 
             onChange={(e) => setResolution(e.target.value)}
-            style={{ 
-              background: 'var(--bg-panel)', 
-              color: 'var(--text-secondary)', 
-              border: '1px solid var(--border-subtle)', 
-              fontSize: '11px',
-              padding: '3px 8px',
-              borderRadius: 'var(--radius-sm)',
-              outline: 'none'
-            }}
+            className="preview-select"
           >
             <option value="3840x2160">4K UHD (16:9)</option>
             <option value="1920x1080">1080p FHD (16:9)</option>
@@ -83,31 +81,42 @@ export default function Header({
           <select 
             value={fps} 
             onChange={(e) => setFps(Number(e.target.value))}
-            style={{ 
-              background: 'var(--bg-panel)', 
-              color: 'var(--text-secondary)', 
-              border: '1px solid var(--border-subtle)', 
-              fontSize: '11px',
-              padding: '3px 8px',
-              borderRadius: 'var(--radius-sm)',
-              outline: 'none'
-            }}
+            className="preview-select"
           >
-            <option value={24}>24 fps (Cinema)</option>
-            <option value={30}>30 fps (Standard)</option>
-            <option value={60}>60 fps (Smooth)</option>
+            <option value={24}>24 fps</option>
+            <option value={30}>30 fps</option>
+            <option value={60}>60 fps</option>
           </select>
         </div>
       </div>
 
       <div className="header-right">
-        <button 
-          className={`btn-icon ${showAgentSidebar ? 'active' : ''}`}
-          onClick={() => setShowAgentSidebar(!showAgentSidebar)}
-          title="Toggle Palmier AI Copilot Sidebar"
-        >
-          <Bot size={16} />
-        </button>
+        {/* Panel visibility toggles matching PalmierPro EditorView.swift */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'var(--bg-app)', padding: '2px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+          <button 
+            className={`btn-icon ${showMediaPanel ? 'active' : ''}`}
+            onClick={() => setShowMediaPanel(!showMediaPanel)}
+            title="Toggle Media Panel (⌘1)"
+          >
+            <Layers size={13} />
+          </button>
+
+          <button 
+            className={`btn-icon ${showInspector ? 'active' : ''}`}
+            onClick={() => setShowInspector(!showInspector)}
+            title="Toggle Inspector Panel (⌘2)"
+          >
+            <Sliders size={13} />
+          </button>
+
+          <button 
+            className={`btn-icon ${showAgentSidebar ? 'active' : ''}`}
+            onClick={() => setShowAgentSidebar(!showAgentSidebar)}
+            title="Toggle Palmier AI Copilot Panel (⌘3)"
+          >
+            <Bot size={13} />
+          </button>
+        </div>
 
         <button 
           className="btn-icon" 
@@ -120,11 +129,11 @@ export default function Header({
             }
           }}
         >
-          <Maximize2 size={16} />
+          <Maximize2 size={13} />
         </button>
 
         <button className="btn-primary" onClick={onExport}>
-          <Download size={14} />
+          <Download size={13} />
           <span>Export Master</span>
         </button>
       </div>

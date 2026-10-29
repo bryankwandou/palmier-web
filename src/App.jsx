@@ -16,9 +16,14 @@ import { Film, Download, CheckCircle, RefreshCw } from 'lucide-react';
 
 export default function App() {
   const [projectName, setProjectName] = useState('Palmier Pro — Project Alpha');
-  const [activeLayout, setActiveLayout] = useState('editing'); // 'editing' | 'color' | 'audio' | 'captions' | 'ai-studio'
+  const [activeLayout, setActiveLayout] = useState('editing'); // 'editing' | 'vertical' | 'media' | 'color' | 'audio' | 'captions' | 'ai-studio'
   const [resolution, setResolution] = useState('1920x1080');
   const [fps, setFps] = useState(30);
+
+  // Panel visibility toggles matching PalmierPro EditorView.swift
+  const [showMediaPanel, setShowMediaPanel] = useState(true);
+  const [showInspector, setShowInspector] = useState(true);
+  const [showAgentSidebar, setShowAgentSidebar] = useState(false); // Collapsed by default for spacious center stage
 
   const [tracks, setTracks] = useState(INITIAL_TRACKS);
   const [clips, setClips] = useState(INITIAL_CLIPS);
@@ -28,10 +33,45 @@ export default function App() {
   const [currentTime, setCurrentTime] = useState(2.5);
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedClipId, setSelectedClipId] = useState('clip-1');
-  const [showAgentSidebar, setShowAgentSidebar] = useState(true);
 
   const [exportModal, setExportModal] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
+
+  // Synchronize layout preset changes
+  const handleSelectLayout = (layoutId) => {
+    setActiveLayout(layoutId);
+    if (layoutId === 'editing') {
+      setShowMediaPanel(true);
+      setShowInspector(true);
+      setShowAgentSidebar(false);
+      setResolution('1920x1080');
+    } else if (layoutId === 'vertical') {
+      setShowMediaPanel(false);
+      setShowInspector(true);
+      setShowAgentSidebar(false);
+      setResolution('1080x1920');
+    } else if (layoutId === 'media') {
+      setShowMediaPanel(true);
+      setShowInspector(false);
+      setShowAgentSidebar(false);
+    } else if (layoutId === 'color') {
+      setShowMediaPanel(false);
+      setShowInspector(true);
+      setShowAgentSidebar(false);
+    } else if (layoutId === 'audio') {
+      setShowMediaPanel(true);
+      setShowInspector(true);
+      setShowAgentSidebar(false);
+    } else if (layoutId === 'captions') {
+      setShowMediaPanel(true);
+      setShowInspector(true);
+      setShowAgentSidebar(false);
+    } else if (layoutId === 'ai-studio') {
+      setShowMediaPanel(false);
+      setShowInspector(false);
+      setShowAgentSidebar(true);
+    }
+  };
 
   // Compute total timeline duration
   const totalDuration = Math.max(
@@ -65,7 +105,7 @@ export default function App() {
     return () => cancelAnimationFrame(animId);
   }, [isPlaying, totalDuration]);
 
-  // Global Keyboard shortcuts (Space, Split S, Delete, Frame arrows)
+  // Global Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
@@ -174,6 +214,7 @@ export default function App() {
       startTime: currentTime,
       duration: media.duration || 6.0,
       type: media.type,
+      mediaUrl: media.type === 'video' ? 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4' : undefined,
       posterUrl: media.thumbnail,
       opacity: 1,
       scale: 1,
@@ -276,6 +317,7 @@ export default function App() {
         startTime: currentTime,
         duration: 4.5,
         type: 'video',
+        mediaUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
         posterUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&q=80',
         scale: 1,
         opacity: 0.95
@@ -313,6 +355,8 @@ export default function App() {
     }, 180);
   };
 
+  const aspectRatio = resolution === '1080x1920' ? '9:16' : '16:9';
+
   return (
     <div className="palmier-root">
       {/* 1. Top Application Header matching Palmier Pro Toolbar */}
@@ -320,30 +364,36 @@ export default function App() {
         projectName={projectName}
         setProjectName={setProjectName}
         activeLayout={activeLayout}
-        setActiveLayout={setActiveLayout}
+        setActiveLayout={handleSelectLayout}
         resolution={resolution}
         setResolution={setResolution}
         fps={fps}
         setFps={setFps}
+        showMediaPanel={showMediaPanel}
+        setShowMediaPanel={setShowMediaPanel}
+        showInspector={showInspector}
+        setShowInspector={setShowInspector}
         showAgentSidebar={showAgentSidebar}
         setShowAgentSidebar={setShowAgentSidebar}
         onExport={handleStartExport}
       />
 
-      {/* 2. Main 5-Panel Workspace */}
+      {/* 2. Main Workspace */}
       <div className="palmier-workspace">
         {/* Left Panel: MediaPanelContainer (Media, Audio/SFX, Captions, Index) */}
-        <aside className="palmier-left-drawer">
-          <MediaPanelContainer 
-            mediaList={mediaList}
-            onAddMedia={(newAsset) => setMediaList((prev) => [newAsset, ...prev])}
-            onInsertToTimeline={handleInsertMedia}
-            markers={markers}
-            onSeek={(t) => setCurrentTime(t)}
-            onApplyCaptionTemplate={handleApplyCaptionTemplate}
-            onAutoTranscribe={handleAutoTranscribe}
-          />
-        </aside>
+        {showMediaPanel && (
+          <aside className="palmier-left-drawer">
+            <MediaPanelContainer 
+              mediaList={mediaList}
+              onAddMedia={(newAsset) => setMediaList((prev) => [newAsset, ...prev])}
+              onInsertToTimeline={handleInsertMedia}
+              markers={markers}
+              onSeek={(t) => setCurrentTime(t)}
+              onApplyCaptionTemplate={handleApplyCaptionTemplate}
+              onAutoTranscribe={handleAutoTranscribe}
+            />
+          </aside>
+        )}
 
         {/* Center Stage: Preview Monitor & Timeline */}
         <main className="palmier-stage">
@@ -354,9 +404,11 @@ export default function App() {
             onTogglePlay={() => setIsPlaying((p) => !p)}
             onSeek={(t) => setCurrentTime(t)}
             fps={fps}
+            aspectRatio={aspectRatio}
             activeVideoClip={activeVideoClip}
             activeTextClip={activeTextClip}
             selectedClip={selectedClip}
+            onUpdateClip={handleUpdateClip}
           />
 
           <Timeline 
@@ -374,11 +426,13 @@ export default function App() {
           />
         </main>
 
-        {/* Right Inspector Panel matching Palmier Pro 5 Tabs */}
-        <Inspector 
-          clip={selectedClip}
-          onUpdateClip={handleUpdateClip}
-        />
+        {/* Right Inspector Panel */}
+        {showInspector && (
+          <Inspector 
+            clip={selectedClip}
+            onUpdateClip={handleUpdateClip}
+          />
+        )}
 
         {/* Rightmost Copilot Sidebar matching Palmier Pro AgentPanelView.swift */}
         {showAgentSidebar && (
