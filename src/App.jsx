@@ -53,16 +53,11 @@ export default function App() {
     return maxEnd;
   }, [activeSequence, clips]);
 
-  // Current active clip under playhead for video canvas
-  const currentClip = useMemo(() => {
-    const underPlayhead = clips.find(c => (c.trackId === 'V1' || c.trackId === 'V2') && currentTime >= c.startTime && currentTime <= (c.startTime + c.duration));
-    return underPlayhead || clips.find(c => c.id === selectedClipId) || clips[0];
-  }, [clips, currentTime, selectedClipId]);
-
   // Selected clip for Inspector
   const selectedClip = useMemo(() => {
-    return clips.find(c => c.id === selectedClipId) || currentClip;
-  }, [clips, selectedClipId, currentClip]);
+    const underPlayhead = clips.find(c => (c.trackId === 'V1' || c.trackId === 'V2') && currentTime >= c.startTime && currentTime <= (c.startTime + c.duration));
+    return clips.find(c => c.id === selectedClipId) || underPlayhead || clips[0];
+  }, [clips, selectedClipId, currentTime]);
 
   // Palmier MCP Engine instance
   const mcpEngine = useMemo(() => {
@@ -109,11 +104,11 @@ export default function App() {
       } else if (e.code === 'ArrowLeft') {
         e.preventDefault();
         videoEngine.playScrubSound();
-        setCurrentTime((prev) => Math.max(0, prev - 1 / 24));
+        setCurrentTime((prev) => Math.max(0, prev - 1 / (activeSequence?.fps || 24)));
       } else if (e.code === 'ArrowRight') {
         e.preventDefault();
         videoEngine.playScrubSound();
-        setCurrentTime((prev) => Math.min(totalDuration, prev + 1 / 24));
+        setCurrentTime((prev) => Math.min(totalDuration, prev + 1 / (activeSequence?.fps || 24)));
       } else if (e.code === 'Home') {
         e.preventDefault();
         setCurrentTime(0);
@@ -128,7 +123,7 @@ export default function App() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [totalDuration]);
+  }, [totalDuration, activeSequence]);
 
   // Split clip (Razor tool)
   const handleSplitClip = (clipId, splitTime) => {
@@ -150,13 +145,63 @@ export default function App() {
     setSelectedClipId(clipB.id);
   };
 
+  // Split at Playhead (Cmd+K)
+  const handleSplitAtPlayhead = () => {
+    const target = clips.find(c => currentTime > c.startTime && currentTime < (c.startTime + c.duration));
+    if (target) {
+      handleSplitClip(target.id, currentTime);
+    }
+  };
+
+  // Trim Start to Playhead (Q)
+  const handleTrimStartToPlayhead = () => {
+    const target = clips.find(c => currentTime > c.startTime && currentTime < (c.startTime + c.duration));
+    if (target) {
+      const diff = currentTime - target.startTime;
+      if (diff > 0.1 && (target.duration - diff) > 0.2) {
+        handleUpdateClip(target.id, {
+          startTime: currentTime,
+          duration: target.duration - diff
+        });
+      }
+    }
+  };
+
+  // Trim End to Playhead (W)
+  const handleTrimEndToPlayhead = () => {
+    const target = clips.find(c => currentTime > c.startTime && currentTime < (c.startTime + c.duration));
+    if (target) {
+      const newDur = currentTime - target.startTime;
+      if (newDur > 0.2) {
+        handleUpdateClip(target.id, { duration: newDur });
+      }
+    }
+  };
+
+  // Add Text Clip (T)
+  const handleAddTextClip = (customText) => {
+    const newText = {
+      id: `t-clip-${Date.now()}`,
+      trackId: 'T1',
+      name: customText ? customText.slice(0, 20) : 'AESTHETIC TITLE',
+      text: customText || 'AESTHETIC TITLE // PALMIER PRO',
+      startTime: currentTime,
+      duration: 4.0,
+      fontSize: 42,
+      fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", Inter, sans-serif',
+      color: '#ffffff'
+    };
+    setClips(prev => [...prev, newText]);
+    setSelectedClipId(newText.id);
+  };
+
   // Delete clip
   const handleDeleteClip = (clipId) => {
     setClips(prev => prev.filter(c => c.id !== clipId));
     setSelectedClipId(null);
   };
 
-  // Update clip properties from Inspector
+  // Update clip properties from Inspector or dragging
   const handleUpdateClip = (clipId, newProps) => {
     setClips(prev => prev.map(c => c.id === clipId ? { ...c, ...newProps } : c));
     if (newProps.volumeDb !== undefined) {
@@ -166,12 +211,16 @@ export default function App() {
 
   // Agent MCP tool calls
   const handleAgentToolCall = (toolName, args) => {
-    if (toolName === 'add_clips') {
+    if (toolName === 'split_clip') {
+      handleSplitAtPlayhead();
+    } else if (toolName === 'add_text_clip') {
+      handleAddTextClip(args.text);
+    } else if (toolName === 'add_clips') {
       const newClip = {
         id: `v-clip-${Date.now()}`,
         name: args.name || 'juicyma',
         startTime: currentTime,
-        duration: args.duration || 2.4,
+        duration: args.duration || 2.5,
         trackId: args.trackId || 'V1',
         thumb: args.thumb || '/welcome-butterfly.jpg'
       };
@@ -180,8 +229,11 @@ export default function App() {
     } else if (toolName === 'apply_color') {
       if (selectedClipId) {
         handleUpdateClip(selectedClipId, {
-          solarize: args.solarize,
-          grain: args.grain
+          exposure: args.exposure !== undefined ? args.exposure : 0.0,
+          contrast: args.contrast !== undefined ? args.contrast : 1.2,
+          saturation: args.saturation !== undefined ? args.saturation : 1.1,
+          solarize: args.solarize || false,
+          grain: args.grain !== undefined ? args.grain : true
         });
       }
     }
@@ -207,9 +259,12 @@ export default function App() {
       name: caption.text.slice(0, 20),
       text: caption.text,
       startTime: caption.startTime,
-      duration: caption.endTime - caption.startTime
+      duration: caption.endTime - caption.startTime,
+      fontSize: 34,
+      color: '#f59e0b'
     };
     setClips(prev => [...prev, newTextClip]);
+    setSelectedClipId(newTextClip.id);
   };
 
   // Add new sequence timeline
@@ -305,9 +360,7 @@ export default function App() {
         projectName={activeSequence.name} 
         onBackToHome={() => setCurrentView(currentView === 'home' ? 'editor' : 'home')}
         onOpenSettings={() => setSettingsModal(true)}
-        onExport={() => {
-          setExportModal(true);
-        }}
+        onExport={() => setExportModal(true)}
         onOpenMcp={() => setMcpModal(true)}
         onOpenShortcuts={() => setShortcutsModal(true)}
       />
@@ -352,15 +405,16 @@ export default function App() {
               }}
             />
 
-            {/* Center Preview Monitor (24fps Canvas Engine) */}
+            {/* Center Preview Monitor (24fps Multi-Layer Canvas Compositing Engine) */}
             <PalmierPreview 
-              currentClip={currentClip}
+              clips={clips}
+              activeSequence={activeSequence}
               currentTime={currentTime}
               totalDuration={totalDuration}
               isPlaying={isPlaying}
               onTogglePlay={() => setIsPlaying((p) => !p)}
               onSeek={(t) => setCurrentTime(t)}
-              onStepFrame={(d) => setCurrentTime((prev) => Math.max(0, Math.min(totalDuration, prev + d * (1 / 24))))}
+              onStepFrame={(d) => setCurrentTime((prev) => Math.max(0, Math.min(totalDuration, prev + d * (1 / (activeSequence?.fps || 24)))))}
             />
 
             {/* Right 5-Tab Inspector (Adjust, Color, Audio, AI Edit, Text) */}
@@ -370,7 +424,7 @@ export default function App() {
             />
           </div>
 
-          {/* Bottom Timeline with Sequence Tabs, 6 Tracks, Filmstrips, and Waveforms */}
+          {/* Bottom Timeline with Sequence Tabs, 6 Tracks, Filmstrips, Waveforms, Trimming, and Scrubbing */}
           <PalmierTimelineFull 
             sequences={sequences}
             activeSequenceId={activeSequenceId}
@@ -384,7 +438,12 @@ export default function App() {
             onSelectClip={(id) => setSelectedClipId(id)}
             onSplitClip={handleSplitClip}
             onDeleteClip={handleDeleteClip}
+            onUpdateClip={handleUpdateClip}
             onSeek={(t) => setCurrentTime(t)}
+            onAddTextClip={() => handleAddTextClip()}
+            onSplitAtPlayhead={handleSplitAtPlayhead}
+            onTrimStartToPlayhead={handleTrimStartToPlayhead}
+            onTrimEndToPlayhead={handleTrimEndToPlayhead}
           />
         </>
       )}

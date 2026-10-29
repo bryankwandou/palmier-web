@@ -9,14 +9,16 @@ import {
   Pause, 
   StepForward, 
   SkipForward, 
-  Camera
+  Camera,
+  Maximize2
 } from 'lucide-react';
 import { videoEngine } from '../services/videoEngine';
 
 export default function PalmierPreview({ 
-  currentClip,
-  currentTime = 7.958, // 00:00:07:23 at 24fps
-  totalDuration = 33.541, // 00:00:33:13
+  clips = [],
+  activeSequence = { fps: 24, resolution: '1920x1080', aspectRatio: '16:9' },
+  currentTime = 7.958,
+  totalDuration = 33.541,
   isPlaying = false,
   onTogglePlay,
   onSeek,
@@ -24,9 +26,9 @@ export default function PalmierPreview({
 }) {
   const canvasRef = useRef(null);
 
-  // Format frames to standard timecode HH:MM:SS:FF at 24fps
+  // Format frames to standard timecode HH:MM:SS:FF at sequence fps
   const formatTimecode = (seconds) => {
-    const fps = 24;
+    const fps = activeSequence?.fps || 24;
     const totalFrames = Math.floor(seconds * fps);
     const hrs = Math.floor(totalFrames / (fps * 3600));
     const mins = Math.floor((totalFrames % (fps * 3600)) / (fps * 60));
@@ -36,12 +38,12 @@ export default function PalmierPreview({
     return `${pad(hrs)}:${pad(mins)}:${pad(secs)}:${pad(frames)}`;
   };
 
-  // Render canvas frame on state change or playback tick
+  // Render canvas frame on any state change or playback tick
   useEffect(() => {
     if (canvasRef.current) {
-      videoEngine.renderFrame(canvasRef.current, currentClip, currentTime);
+      videoEngine.renderFrame(canvasRef.current, clips, currentTime, activeSequence);
     }
-  }, [currentClip, currentTime, isPlaying]);
+  }, [clips, currentTime, isPlaying, activeSequence]);
 
   const handleSeek = (newSec) => {
     videoEngine.playScrubSound();
@@ -58,9 +60,16 @@ export default function PalmierPreview({
     const dataUrl = canvasRef.current.toDataURL('image/png');
     const a = document.createElement('a');
     a.href = dataUrl;
-    a.download = `Palmier_Snapshot_f${Math.floor(currentTime * 24)}.png`;
+    a.download = `Palmier_Snapshot_f${Math.floor(currentTime * (activeSequence?.fps || 24))}.png`;
     a.click();
   };
+
+  // Determine canvas width and height based on aspect ratio
+  const isVertical = activeSequence?.aspectRatio === '9:16';
+  const isCinemascope = activeSequence?.aspectRatio === '21:9';
+  const canvasW = isVertical ? 1080 : isCinemascope ? 2560 : 1920;
+  const canvasH = isVertical ? 1920 : 1080;
+  const frameAspect = isVertical ? '9/16' : isCinemascope ? '21/9' : '16/9';
 
   return (
     <div className="palmier-preview-monitor">
@@ -69,18 +78,22 @@ export default function PalmierPreview({
         <div className="preview-nav-left">
           <button className="preview-nav-btn"><ChevronLeft size={13} /></button>
           <button className="preview-nav-btn"><ChevronRight size={13} /></button>
-          <span className="preview-nav-title">Timeline</span>
+          <span className="preview-nav-title">Timeline ({activeSequence?.name || 'Aesthetic video'})</span>
           <MoreHorizontal size={13} className="preview-more-icon" />
+        </div>
+
+        <div className="preview-nav-right">
+          <span className="preview-aspect-tag">{activeSequence?.resolution || '1920x1080'}</span>
         </div>
       </div>
 
-      {/* Main 16:9 Video Canvas Display */}
+      {/* Main Multi-Layer Video Canvas Display */}
       <div className="preview-canvas-container">
-        <div className="preview-canvas-frame">
+        <div className="preview-canvas-frame" style={{ aspectRatio: frameAspect }}>
           <canvas 
             ref={canvasRef}
-            width={1920}
-            height={1080}
+            width={canvasW}
+            height={canvasH}
             className="preview-viewport-canvas"
           />
         </div>
@@ -139,18 +152,10 @@ export default function PalmierPreview({
           <button 
             className="transport-btn" 
             onClick={handleSnapshot}
-            title="Capture Still Snapshot (PNG)"
+            title="Snapshot Frame (PNG)"
           >
             <Camera size={13} />
           </button>
-        </div>
-
-        {/* Format Spec Pills */}
-        <div className="preview-format-pills">
-          <span className="spec-pill">16:9</span>
-          <span className="spec-pill">24</span>
-          <span className="spec-pill">FHD</span>
-          <span className="spec-pill highlight">Fit</span>
         </div>
       </div>
     </div>
