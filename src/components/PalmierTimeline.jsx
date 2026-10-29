@@ -13,11 +13,13 @@ import {
   Lock,
   Volume2
 } from 'lucide-react';
+import { videoEngine } from '../services/videoEngine';
 
 export default function PalmierTimeline({ 
   clips = [],
   currentTime = 7.958, 
   totalDuration = 33.541, 
+  isPlaying = false,
   selectedClipId,
   onSelectClip,
   onSplitClip,
@@ -26,7 +28,22 @@ export default function PalmierTimeline({
 }) {
   const [activeTool, setActiveTool] = useState('select'); // 'select' | 'razor' | 'ripple' | 'range' | 'text'
   const [zoomLevel, setZoomLevel] = useState(30); // pixels per second
+  const [liveWaveform, setLiveWaveform] = useState(null);
   const timelineTracksRef = useRef(null);
+
+  // Animate real audio waveform bars while playing
+  useEffect(() => {
+    let animId;
+    if (isPlaying) {
+      const updateWave = () => {
+        const data = videoEngine.getLiveWaveformData();
+        if (data) setLiveWaveform(data);
+        animId = requestAnimationFrame(updateWave);
+      };
+      animId = requestAnimationFrame(updateWave);
+    }
+    return () => cancelAnimationFrame(animId);
+  }, [isPlaying]);
 
   // Keyboard shortcut listeners
   useEffect(() => {
@@ -253,13 +270,18 @@ export default function PalmierTimeline({
                   <span>Audio Master L/R</span>
                 </div>
                 <div className="neon-green-waveform-bars">
-                  {Array.from({ length: 80 }).map((_, i) => (
-                    <div 
-                      key={i} 
-                      className="wf-bar"
-                      style={{ height: `${15 + Math.sin(i * 0.4) * 12 + (i % 3) * 4}px` }}
-                    />
-                  ))}
+                  {Array.from({ length: 80 }).map((_, i) => {
+                    const dynamicHeight = liveWaveform 
+                      ? Math.max(4, (liveWaveform[i] / 255) * 32)
+                      : (15 + Math.sin(i * 0.4) * 12 + (i % 3) * 4);
+                    return (
+                      <div 
+                        key={i} 
+                        className="wf-bar"
+                        style={{ height: `${dynamicHeight}px` }}
+                      />
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -274,13 +296,18 @@ export default function PalmierTimeline({
                   <span>Ambience / SFX</span>
                 </div>
                 <div className="neon-green-waveform-bars">
-                  {Array.from({ length: 80 }).map((_, i) => (
-                    <div 
-                      key={i} 
-                      className="wf-bar"
-                      style={{ height: `${10 + Math.cos(i * 0.5) * 8 + (i % 2) * 5}px` }}
-                    />
-                  ))}
+                  {Array.from({ length: 80 }).map((_, i) => {
+                    const dynamicHeight = liveWaveform 
+                      ? Math.max(3, (liveWaveform[79 - i] / 255) * 24)
+                      : (10 + Math.cos(i * 0.5) * 8 + (i % 2) * 5);
+                    return (
+                      <div 
+                        key={i} 
+                        className="wf-bar"
+                        style={{ height: `${dynamicHeight}px` }}
+                      />
+                    );
+                  })}
                 </div>
               </div>
             </div>

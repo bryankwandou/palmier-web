@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Plus, 
   Sparkles, 
@@ -7,7 +7,7 @@ import {
   ChevronRight, 
   ChevronDown, 
   RotateCw,
-  Image as ImageIcon
+  UploadCloud
 } from 'lucide-react';
 import { MEDIA_LIBRARY_ITEMS } from '../data/palmierSourceData';
 
@@ -17,6 +17,7 @@ export default function PalmierMediaBin({ onSelectMedia, onGenerate }) {
   const [activeGenTab, setActiveGenTab] = useState('first-last'); // 'first-last' | 'reference'
   const [promptText, setPromptText] = useState('extreme macro close-up iridescent butterfly wing scales shimmer, cinematic lighting, 8k');
   const [isGenerating, setIsGenerating] = useState(false);
+  const fileInputRef = useRef(null);
 
   const filteredItems = items.filter(item => 
     item.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -34,19 +35,94 @@ export default function PalmierMediaBin({ onSelectMedia, onGenerate }) {
       setItems(prev => [newItem, ...prev]);
       setIsGenerating(false);
       if (onGenerate) onGenerate(newItem);
-    }, 1200);
+    }, 1000);
+  };
+
+  const handleFileImport = (e) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    Array.from(files).forEach((file) => {
+      const url = URL.createObjectURL(file);
+      const isVideo = file.type.startsWith('video');
+
+      if (isVideo) {
+        const vid = document.createElement('video');
+        vid.src = url;
+        vid.onloadeddata = () => {
+          vid.currentTime = 0.5;
+        };
+        vid.onseeked = () => {
+          const offCanvas = document.createElement('canvas');
+          offCanvas.width = 320;
+          offCanvas.height = 180;
+          const ctx = offCanvas.getContext('2d');
+          ctx.drawImage(vid, 0, 0, 320, 180);
+          const thumbUrl = offCanvas.toDataURL('image/jpeg');
+
+          const newItem = {
+            id: `m-${Date.now()}`,
+            name: file.name.slice(0, 16),
+            duration: `${Math.floor(vid.duration * 1000)}`,
+            thumb: thumbUrl,
+            rawUrl: url
+          };
+          setItems(prev => [newItem, ...prev]);
+          if (onSelectMedia) onSelectMedia(newItem);
+        };
+      } else {
+        const newItem = {
+          id: `m-${Date.now()}`,
+          name: file.name.slice(0, 16),
+          duration: '47,780',
+          thumb: url,
+          rawUrl: url
+        };
+        setItems(prev => [newItem, ...prev]);
+        if (onSelectMedia) onSelectMedia(newItem);
+      }
+    });
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFileImport({ target: { files: e.dataTransfer.files } });
+    }
   };
 
   return (
-    <div className="palmier-media-bin">
+    <div 
+      className="palmier-media-bin"
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={handleDrop}
+    >
+      {/* Hidden File Input for Real Native Imports */}
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        style={{ display: 'none' }} 
+        accept="video/*,image/*" 
+        multiple 
+        onChange={handleFileImport}
+      />
+
       {/* Top Header Actions */}
       <div className="media-bin-top-header">
         <div className="header-action-buttons">
-          <button className="bin-btn btn-import">
+          <button 
+            className="bin-btn btn-import"
+            onClick={() => fileInputRef.current && fileInputRef.current.click()}
+            title="Import Video or Image from Disk"
+          >
             <Plus size={13} />
             <span>Import</span>
           </button>
-          <button className="bin-btn btn-sparkle" onClick={handleGenerate}>
+          <button 
+            className="bin-btn btn-sparkle" 
+            onClick={handleGenerate}
+            title="Generate AI Shot"
+          >
             <Sparkles size={13} />
             <span>Generate</span>
           </button>
@@ -73,7 +149,7 @@ export default function PalmierMediaBin({ onSelectMedia, onGenerate }) {
         <span className="crumb-root">Library</span>
         <ChevronRight size={12} className="crumb-separator" />
         <span className="crumb-current">Animals</span>
-        <span className="crumb-count">{items.length} items</span>
+        <span className="crumb-count">{filteredItems.length} items</span>
       </div>
 
       {/* 3-Column Media Grid */}
@@ -83,7 +159,7 @@ export default function PalmierMediaBin({ onSelectMedia, onGenerate }) {
             key={item.id} 
             className="media-grid-card"
             onClick={() => onSelectMedia && onSelectMedia(item)}
-            title={item.name}
+            title={`${item.name} (Click to insert to timeline)`}
           >
             <div className="card-thumb-wrap">
               <img src={item.thumb} alt={item.name} />
@@ -120,7 +196,12 @@ export default function PalmierMediaBin({ onSelectMedia, onGenerate }) {
             <img src="/welcome-butterfly.jpg" alt="First Frame" />
             <span className="frame-label">First</span>
           </div>
-          <div className="seedance-frame-card empty">
+          <div 
+            className="seedance-frame-card empty"
+            onClick={() => fileInputRef.current && fileInputRef.current.click()}
+            title="Upload Last Frame from Computer"
+            style={{ cursor: 'pointer' }}
+          >
             <Plus size={16} />
             <span className="frame-label">Last</span>
           </div>

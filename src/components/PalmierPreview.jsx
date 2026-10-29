@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -11,6 +11,7 @@ import {
   SkipForward, 
   Camera
 } from 'lucide-react';
+import { videoEngine } from '../services/videoEngine';
 
 export default function PalmierPreview({ 
   currentClip,
@@ -21,6 +22,9 @@ export default function PalmierPreview({
   onSeek,
   onStepFrame
 }) {
+  const canvasRef = useRef(null);
+
+  // Format frames to standard timecode HH:MM:SS:FF at 24fps
   const formatTimecode = (seconds) => {
     const fps = 24;
     const totalFrames = Math.floor(seconds * fps);
@@ -32,20 +36,30 @@ export default function PalmierPreview({
     return `${pad(hrs)}:${pad(mins)}:${pad(secs)}:${pad(frames)}`;
   };
 
-  const activeThumb = currentClip?.thumb || '/welcome-butterfly.jpg';
+  // Render canvas frame on state change or playback tick
+  useEffect(() => {
+    if (canvasRef.current) {
+      videoEngine.renderFrame(canvasRef.current, currentClip, currentTime);
+    }
+  }, [currentClip, currentTime, isPlaying]);
 
-  // Compute CSS filter from active clip's AI color grade & Sabattier effect
-  let filterStyle = 'none';
-  if (currentClip?.solarize) {
-    filterStyle = 'invert(0.75) contrast(2.5) hue-rotate(190deg) saturate(1.8)';
-  } else if (currentClip?.grain) {
-    filterStyle = 'contrast(1.4) brightness(0.95) saturate(0.8)';
-  }
+  const handleSeek = (newSec) => {
+    videoEngine.playScrubSound();
+    if (onSeek) onSeek(newSec);
+  };
 
-  const transformStyle = {
-    transform: `scale(${(currentClip?.scale || 100) / 100}) translate(${currentClip?.posX || 0}px, ${currentClip?.posY || 0}px)`,
-    filter: filterStyle,
-    transition: 'transform 0.1s ease, filter 0.2s ease'
+  const handleStep = (dir) => {
+    videoEngine.playScrubSound();
+    if (onStepFrame) onStepFrame(dir);
+  };
+
+  const handleSnapshot = () => {
+    if (!canvasRef.current) return;
+    const dataUrl = canvasRef.current.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = `Palmier_Snapshot_f${Math.floor(currentTime * 24)}.png`;
+    a.click();
   };
 
   return (
@@ -63,11 +77,11 @@ export default function PalmierPreview({
       {/* Main 16:9 Video Canvas Display */}
       <div className="preview-canvas-container">
         <div className="preview-canvas-frame">
-          <img 
-            src={activeThumb} 
-            alt="Preview Monitor" 
-            className="preview-viewport-image"
-            style={transformStyle}
+          <canvas 
+            ref={canvasRef}
+            width={1920}
+            height={1080}
+            className="preview-viewport-canvas"
           />
         </div>
       </div>
@@ -85,41 +99,48 @@ export default function PalmierPreview({
         <div className="preview-transport-group">
           <button 
             className="transport-btn" 
-            onClick={() => onSeek && onSeek(0)}
+            onClick={() => handleSeek(0)}
             title="Go to Start (Home)"
           >
             <SkipBack size={13} />
           </button>
           <button 
             className="transport-btn" 
-            onClick={() => onStepFrame && onStepFrame(-1)}
+            onClick={() => handleStep(-1)}
             title="Step Back 1 Frame (Left Arrow)"
           >
             <StepBack size={13} />
           </button>
           <button 
             className="transport-btn play-btn" 
-            onClick={onTogglePlay}
+            onClick={() => {
+              videoEngine.initAudio();
+              if (onTogglePlay) onTogglePlay();
+            }}
             title="Play / Pause (Space)"
           >
             {isPlaying ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" />}
           </button>
           <button 
             className="transport-btn" 
-            onClick={() => onStepFrame && onStepFrame(1)}
+            onClick={() => handleStep(1)}
             title="Step Forward 1 Frame (Right Arrow)"
           >
             <StepForward size={13} />
           </button>
           <button 
             className="transport-btn" 
-            onClick={() => onSeek && onSeek(totalDuration)}
+            onClick={() => handleSeek(totalDuration)}
             title="Go to End (End)"
           >
             <SkipForward size={13} />
           </button>
 
-          <button className="transport-btn" title="Capture Still Snapshot">
+          <button 
+            className="transport-btn" 
+            onClick={handleSnapshot}
+            title="Capture Still Snapshot (PNG)"
+          >
             <Camera size={13} />
           </button>
         </div>

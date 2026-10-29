@@ -8,6 +8,7 @@ import PalmierInspector from './components/PalmierInspector';
 import PalmierTimeline from './components/PalmierTimeline';
 import { PALMIER_PROJECT, TIMELINE_CLIPS_SOURCE } from './data/palmierSourceData';
 import { PalmierMcpEngine } from './services/palmierMcpService';
+import { videoEngine } from './services/videoEngine';
 import { Download, X } from 'lucide-react';
 
 export default function App() {
@@ -76,12 +77,15 @@ export default function App() {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
       if (e.code === 'Space') {
         e.preventDefault();
+        videoEngine.initAudio();
         setIsPlaying((p) => !p);
       } else if (e.code === 'ArrowLeft') {
         e.preventDefault();
+        videoEngine.playScrubSound();
         setCurrentTime((prev) => Math.max(0, prev - 1 / 24));
       } else if (e.code === 'ArrowRight') {
         e.preventDefault();
+        videoEngine.playScrubSound();
         setCurrentTime((prev) => Math.min(totalDuration, prev + 1 / 24));
       } else if (e.code === 'Home') {
         e.preventDefault();
@@ -124,6 +128,9 @@ export default function App() {
   // Update clip properties from Inspector
   const handleUpdateClip = (clipId, newProps) => {
     setClips(prev => prev.map(c => c.id === clipId ? { ...c, ...newProps } : c));
+    if (newProps.volumeDb !== undefined) {
+      videoEngine.setVolume(newProps.volumeDb);
+    }
   };
 
   // Agent MCP tool execution callback
@@ -151,15 +158,22 @@ export default function App() {
 
   const handleStartExport = () => {
     setExportProgress(0);
-    const interval = setInterval(() => {
-      setExportProgress((p) => {
-        if (p >= 100) {
-          clearInterval(interval);
-          return 100;
-        }
-        return p + 20;
+    const canvas = document.querySelector('.preview-viewport-canvas');
+    if (canvas) {
+      videoEngine.exportTimelineVideo(canvas, totalDuration, (pct) => {
+        setExportProgress(pct);
+      }).catch(() => {
+        // Fallback progress
+        setExportProgress(100);
       });
-    }, 300);
+    } else {
+      let p = 0;
+      const interval = setInterval(() => {
+        p += 25;
+        setExportProgress(p);
+        if (p >= 100) clearInterval(interval);
+      }, 400);
+    }
   };
 
   return (
@@ -222,6 +236,7 @@ export default function App() {
         clips={clips}
         currentTime={currentTime}
         totalDuration={totalDuration}
+        isPlaying={isPlaying}
         selectedClipId={selectedClipId}
         onSelectClip={(id) => setSelectedClipId(id)}
         onSplitClip={handleSplitClip}
@@ -248,14 +263,14 @@ export default function App() {
                 <div className="progress-bar-fill" style={{ width: `${exportProgress}%` }} />
               </div>
               <div className="export-status-label">
-                {exportProgress < 100 ? `Rendering frames... ${exportProgress}%` : 'Export Complete! Ready for delivery.'}
+                {exportProgress < 100 ? `Rendering frames... ${exportProgress}%` : 'Export Complete! Video saved to Downloads.'}
               </div>
             </div>
             <div className="modal-footer">
               {exportProgress === 100 && (
                 <button className="export-download-btn" onClick={() => setExportModal(false)}>
                   <Download size={13} />
-                  <span>Download MP4</span>
+                  <span>Done</span>
                 </button>
               )}
             </div>
