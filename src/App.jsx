@@ -46,6 +46,7 @@ export default function App() {
   const [mcpModal, setMcpModal] = useState(false);
   const [shortcutsModal, setShortcutsModal] = useState(false);
   const [theme, setTheme] = useState('dark');
+  const [agentActivity, setAgentActivity] = useState(null);
 
   // Compute total duration dynamically
   const totalDuration = useMemo(() => {
@@ -211,6 +212,16 @@ export default function App() {
 
   // Agent MCP tool calls
   const handleAgentToolCall = (toolName, args) => {
+    setAgentActivity({
+      active: true,
+      label: `MCP: ${toolName}`,
+      startTime: Math.max(0, currentTime - 0.5),
+      duration: 4.5
+    });
+    setTimeout(() => {
+      setAgentActivity(null);
+    }, 3500);
+
     if (toolName === 'split_clip') {
       handleSplitAtPlayhead();
     } else if (toolName === 'add_text_clip') {
@@ -444,6 +455,7 @@ export default function App() {
             onSplitAtPlayhead={handleSplitAtPlayhead}
             onTrimStartToPlayhead={handleTrimStartToPlayhead}
             onTrimEndToPlayhead={handleTrimEndToPlayhead}
+            agentActivity={agentActivity}
           />
         </>
       )}

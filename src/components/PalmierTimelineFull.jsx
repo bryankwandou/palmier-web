@@ -39,7 +39,8 @@ export default function PalmierTimelineFull({
   onAddTextClip,
   onSplitAtPlayhead,
   onTrimStartToPlayhead,
-  onTrimEndToPlayhead
+  onTrimEndToPlayhead,
+  agentActivity
 }) {
   const [activeTool, setActiveTool] = useState('select'); // 'select' | 'razor' | 'trim' | 'text'
   const [zoomLevel, setZoomLevel] = useState(32);
@@ -427,6 +428,22 @@ export default function PalmierTimelineFull({
           {hoverCutPos !== null && activeTool === 'razor' && (
             <div className="timeline-razor-hover-line" style={{ transform: `translateX(${hoverCutPos}px)` }}>
               <Scissors size={10} className="razor-hover-icon" />
+            </div>
+          )}
+
+          {/* Agent Activity Overlay matching TimelineView.swift agentActivityLayer */}
+          {agentActivity && agentActivity.active && (
+            <div 
+              className="timeline-agent-activity-bracket"
+              style={{
+                left: `${(agentActivity.startTime || 0) * zoomLevel}px`,
+                width: `${(agentActivity.duration || 4.0) * zoomLevel}px`
+              }}
+            >
+              <div className="agent-activity-tag">
+                <Sparkles size={9} />
+                <span>{agentActivity.label || 'MCP Agent'}</span>
+              </div>
             </div>
           )}
 

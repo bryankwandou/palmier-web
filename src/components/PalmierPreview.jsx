@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -10,7 +10,7 @@ import {
   StepForward, 
   SkipForward, 
   Camera,
-  Maximize2
+  Activity
 } from 'lucide-react';
 import { videoEngine } from '../services/videoEngine';
 
@@ -25,6 +25,7 @@ export default function PalmierPreview({
   onStepFrame
 }) {
   const canvasRef = useRef(null);
+  const [vuLevels, setVuLevels] = useState({ left: 35, right: 38 });
 
   // Format frames to standard timecode HH:MM:SS:FF at sequence fps
   const formatTimecode = (seconds) => {
@@ -44,6 +45,33 @@ export default function PalmierPreview({
       videoEngine.renderFrame(canvasRef.current, clips, currentTime, activeSequence);
     }
   }, [clips, currentTime, isPlaying, activeSequence]);
+
+  // Stereo VU meters loop
+  useEffect(() => {
+    let animId;
+    if (isPlaying) {
+      const updateVu = () => {
+        const wf = videoEngine.getLiveWaveformData();
+        if (wf) {
+          const avgL = wf.slice(0, 20).reduce((a, b) => a + b, 0) / 20;
+          const avgR = wf.slice(20, 40).reduce((a, b) => a + b, 0) / 20;
+          const leftPct = Math.min(100, Math.max(10, (avgL / 255) * 100));
+          const rightPct = Math.min(100, Math.max(10, (avgR / 255) * 100));
+          setVuLevels({ left: leftPct, right: rightPct });
+        } else {
+          setVuLevels({
+            left: 40 + Math.random() * 30,
+            right: 42 + Math.random() * 30
+          });
+        }
+        animId = requestAnimationFrame(updateVu);
+      };
+      animId = requestAnimationFrame(updateVu);
+    } else {
+      setVuLevels({ left: 0, right: 0 });
+    }
+    return () => cancelAnimationFrame(animId);
+  }, [isPlaying]);
 
   const handleSeek = (newSec) => {
     videoEngine.playScrubSound();
@@ -156,6 +184,28 @@ export default function PalmierPreview({
           >
             <Camera size={13} />
           </button>
+        </div>
+
+        {/* Stereo Audio VU Meters (Left / Right Peak) */}
+        <div className="preview-stereo-vu-meter" title="Master Audio Peak Meter (Stereo L/R)">
+          <div className="vu-channel">
+            <span className="vu-label">L</span>
+            <div className="vu-meter-bar">
+              <div 
+                className="vu-fill" 
+                style={{ width: `${isPlaying ? vuLevels.left : 0}%` }} 
+              />
+            </div>
+          </div>
+          <div className="vu-channel">
+            <span className="vu-label">R</span>
+            <div className="vu-meter-bar">
+              <div 
+                className="vu-fill" 
+                style={{ width: `${isPlaying ? vuLevels.right : 0}%` }} 
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>
