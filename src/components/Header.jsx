@@ -1,26 +1,28 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   Film, 
   Layers, 
   Download, 
   Settings, 
-  CheckCircle2, 
-  Cpu, 
-  Share2, 
-  Maximize2 
+  Maximize2, 
+  Bot,
+  LayoutTemplate
 } from 'lucide-react';
+import { WORKSPACE_LAYOUTS } from '../data/projectData';
 
 export default function Header({ 
   projectName, 
   setProjectName, 
+  activeLayout,
+  setActiveLayout,
   resolution, 
   setResolution, 
   fps, 
   setFps,
+  showAgentSidebar,
+  setShowAgentSidebar,
   onExport
 }) {
-  const [showSettings, setShowSettings] = useState(false);
-
   return (
     <header className="palmier-header">
       <div className="header-left">
@@ -37,6 +39,19 @@ export default function Header({
           onChange={(e) => setProjectName(e.target.value)}
           title="Click to rename project"
         />
+
+        {/* Workspace Layouts Switcher */}
+        <div className="layout-presets-bar">
+          {WORKSPACE_LAYOUTS.map((layout) => (
+            <button
+              key={layout.id}
+              className={`layout-preset-btn ${activeLayout === layout.id ? 'active' : ''}`}
+              onClick={() => setActiveLayout(layout.id)}
+            >
+              {layout.name}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="header-center">
@@ -59,10 +74,10 @@ export default function Header({
               outline: 'none'
             }}
           >
-            <option value="3840x2160">4K UHD (3840x2160)</option>
-            <option value="1920x1080">1080p FHD (1920x1080)</option>
-            <option value="1080x1920">9:16 Vertical (1080x1920)</option>
-            <option value="1080x1080">1:1 Square (1080x1080)</option>
+            <option value="3840x2160">4K UHD (16:9)</option>
+            <option value="1920x1080">1080p FHD (16:9)</option>
+            <option value="1080x1920">9:16 Shorts/Reels</option>
+            <option value="1080x1080">1:1 Square</option>
           </select>
 
           <select 
@@ -87,6 +102,14 @@ export default function Header({
 
       <div className="header-right">
         <button 
+          className={`btn-icon ${showAgentSidebar ? 'active' : ''}`}
+          onClick={() => setShowAgentSidebar(!showAgentSidebar)}
+          title="Toggle Palmier AI Copilot Sidebar"
+        >
+          <Bot size={16} />
+        </button>
+
+        <button 
           className="btn-icon" 
           title="Toggle Fullscreen"
           onClick={() => {
@@ -102,7 +125,7 @@ export default function Header({
 
         <button className="btn-primary" onClick={onExport}>
           <Download size={14} />
-          <span>Export Render</span>
+          <span>Export Master</span>
         </button>
       </div>
     </header>

@@ -1,34 +1,41 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Header from './components/Header';
-import MediaBin from './components/MediaBin';
-import AIGenerativeStudio from './components/AIGenerativeStudio';
-import MCPAgentConsole from './components/MCPAgentConsole';
+import MediaPanelContainer from './components/MediaPanel/MediaPanelContainer';
 import PreviewMonitor from './components/PreviewMonitor';
 import Timeline from './components/Timeline';
 import Inspector from './components/Inspector';
-import { INITIAL_TRACKS, INITIAL_CLIPS, MEDIA_LIBRARY } from './data/initialProject';
-import { Film, Sparkles, Bot, Layers, Download, CheckCircle, RefreshCw } from 'lucide-react';
+import AgentSidebar from './components/AgentSidebar/AgentSidebar';
+import { 
+  INITIAL_TRACKS, 
+  INITIAL_CLIPS, 
+  MEDIA_LIBRARY, 
+  INITIAL_MARKERS,
+  CAPTION_TEMPLATES 
+} from './data/projectData';
+import { Film, Download, CheckCircle, RefreshCw } from 'lucide-react';
 
 export default function App() {
   const [projectName, setProjectName] = useState('Palmier Pro — Project Alpha');
+  const [activeLayout, setActiveLayout] = useState('editing'); // 'editing' | 'color' | 'audio' | 'captions' | 'ai-studio'
   const [resolution, setResolution] = useState('1920x1080');
   const [fps, setFps] = useState(30);
 
   const [tracks, setTracks] = useState(INITIAL_TRACKS);
   const [clips, setClips] = useState(INITIAL_CLIPS);
   const [mediaList, setMediaList] = useState(MEDIA_LIBRARY);
+  const [markers, setMarkers] = useState(INITIAL_MARKERS);
 
   const [currentTime, setCurrentTime] = useState(2.5);
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedClipId, setSelectedClipId] = useState('clip-1');
-  const [activeDrawerTab, setActiveDrawerTab] = useState('media'); // 'media' | 'ai' | 'mcp'
+  const [showAgentSidebar, setShowAgentSidebar] = useState(true);
 
   const [exportModal, setExportModal] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
 
   // Compute total timeline duration
   const totalDuration = Math.max(
-    18,
+    24,
     ...clips.map((c) => c.startTime + c.duration)
   );
 
@@ -58,10 +65,9 @@ export default function App() {
     return () => cancelAnimationFrame(animId);
   }, [isPlaying, totalDuration]);
 
-  // Keyboard controls
+  // Global Keyboard shortcuts (Space, Split S, Delete, Frame arrows)
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Don't intercept when typing in inputs/textareas
       if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
 
       if (e.code === 'Space') {
@@ -107,6 +113,10 @@ export default function App() {
 
   // Clip actions
   const handleUpdateClip = (id, updates) => {
+    if (!id && !updates) {
+      setClips([...clips]);
+      return;
+    }
     setClips((prev) =>
       prev.map((c) => (c.id === id ? { ...c, ...updates } : c))
     );
@@ -141,11 +151,26 @@ export default function App() {
     setSelectedClipId(secondClip.id);
   };
 
+  const handleDuplicateClip = (clipId) => {
+    const target = clips.find((c) => c.id === clipId);
+    if (!target) return;
+
+    const duplicated = {
+      ...target,
+      id: `clip-dup-${Date.now()}`,
+      name: `${target.name} (Copy)`,
+      startTime: target.startTime + target.duration + 0.2,
+    };
+
+    setClips((prev) => [...prev, duplicated]);
+    setSelectedClipId(duplicated.id);
+  };
+
   const handleInsertMedia = (media) => {
     const newClip = {
       id: `clip-media-${Date.now()}`,
       name: media.name,
-      trackId: media.type === 'audio' ? 'A1' : 'V1',
+      trackId: media.type === 'audio' ? 'A1' : media.type === 'image' ? 'V2' : 'V1',
       startTime: currentTime,
       duration: media.duration || 6.0,
       type: media.type,
@@ -154,21 +179,65 @@ export default function App() {
       scale: 1,
       volume: 1,
       speed: 1,
+      exposure: 0,
+      contrast: 0,
+      saturation: 0,
+      temp: 0,
+      tint: 0
     };
     setClips((prev) => [...prev, newClip]);
     setSelectedClipId(newClip.id);
   };
 
-  const handleGenerateClip = (aiClip) => {
-    const positionedClip = {
-      ...aiClip,
+  const handleApplyCaptionTemplate = (template) => {
+    const captionClip = {
+      id: `caption-${Date.now()}`,
+      name: `Viral Captions (${template.name})`,
+      trackId: 'T1',
       startTime: currentTime,
+      duration: 5.0,
+      type: 'text',
+      text: 'AI Video Editor Built For Agents',
+      color: template.color,
+      textAnim: template.anim,
+      fontSize: 28,
+      fontWeight: '800'
     };
-    setClips((prev) => [...prev, positionedClip]);
-    setSelectedClipId(positionedClip.id);
+    setClips((prev) => [...prev, captionClip]);
+    setSelectedClipId(captionClip.id);
   };
 
-  // MCP action dispatcher
+  const handleAutoTranscribe = () => {
+    const caption1 = {
+      id: `transcribe-1-${Date.now()}`,
+      name: 'Subtitle: Welcome to Palmier Pro',
+      trackId: 'T1',
+      startTime: 0.5,
+      duration: 3.2,
+      type: 'text',
+      text: 'Welcome to Palmier Pro.',
+      color: '#facc15',
+      fontSize: 26,
+      textAnim: 'pop'
+    };
+
+    const caption2 = {
+      id: `transcribe-2-${Date.now()}`,
+      name: 'Subtitle: First editor built for agents',
+      trackId: 'T1',
+      startTime: 4.0,
+      duration: 5.0,
+      type: 'text',
+      text: 'The first video editor built for AI agents.',
+      color: '#ffffff',
+      fontSize: 26,
+      textAnim: 'pop'
+    };
+
+    setClips((prev) => [...prev, caption1, caption2]);
+  };
+
+  // MCP action dispatcher from Palmier Agent Copilot
   const handleExecuteMcpAction = (action) => {
     if (action.type === 'SPLIT_PLAYHEAD') {
       const clipUnderPlayhead = clips.find(
@@ -188,21 +257,45 @@ export default function App() {
     } else if (action.type === 'ADD_TITLE') {
       const titleClip = {
         id: `title-${Date.now()}`,
-        name: action.text,
+        name: action.payload?.text || 'Palmier Title',
         trackId: 'T1',
         startTime: currentTime,
-        duration: 4.0,
+        duration: 4.5,
         type: 'text',
-        text: action.text,
-        fontSize: 26,
-        color: '#ffffff',
+        text: action.payload?.text || 'Palmier Title',
+        fontSize: 28,
+        color: '#facc15',
       };
       setClips((prev) => [...prev, titleClip]);
       setSelectedClipId(titleClip.id);
-    } else if (action.type === 'DELETE_SELECTED') {
-      if (selectedClipId) {
-        handleDeleteClip(selectedClipId);
-      }
+    } else if (action.type === 'ADD_BROLL') {
+      const brollClip = {
+        id: `broll-${Date.now()}`,
+        name: 'Neural Matrix 4K B-Roll',
+        trackId: 'V2',
+        startTime: currentTime,
+        duration: 4.5,
+        type: 'video',
+        posterUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&q=80',
+        scale: 1,
+        opacity: 0.95
+      };
+      setClips((prev) => [...prev, brollClip]);
+      setSelectedClipId(brollClip.id);
+    } else if (action.type === 'SCORE_MUSIC') {
+      const musicClip = {
+        id: `music-${Date.now()}`,
+        name: 'Cyberpunk Ambient Master Stem',
+        trackId: 'A2',
+        startTime: currentTime,
+        duration: 8.0,
+        type: 'audio',
+        volume: 0.75,
+        fadeIn: 0.8,
+        fadeOut: 0.8
+      };
+      setClips((prev) => [...prev, musicClip]);
+      setSelectedClipId(musicClip.id);
     }
   };
 
@@ -215,80 +308,44 @@ export default function App() {
           clearInterval(interval);
           return 100;
         }
-        return p + 15;
+        return p + 20;
       });
-    }, 200);
+    }, 180);
   };
 
   return (
     <div className="palmier-root">
-      {/* Top Application Header */}
+      {/* 1. Top Application Header matching Palmier Pro Toolbar */}
       <Header 
         projectName={projectName}
         setProjectName={setProjectName}
+        activeLayout={activeLayout}
+        setActiveLayout={setActiveLayout}
         resolution={resolution}
         setResolution={setResolution}
         fps={fps}
         setFps={setFps}
+        showAgentSidebar={showAgentSidebar}
+        setShowAgentSidebar={setShowAgentSidebar}
         onExport={handleStartExport}
       />
 
-      {/* Main Split Workspace */}
+      {/* 2. Main 5-Panel Workspace */}
       <div className="palmier-workspace">
-        {/* Left Drawer (Media Bin, AI Generation, MCP Agent Console) */}
+        {/* Left Panel: MediaPanelContainer (Media, Audio/SFX, Captions, Index) */}
         <aside className="palmier-left-drawer">
-          <div className="drawer-tabs">
-            <button 
-              className={`drawer-tab-btn ${activeDrawerTab === 'media' ? 'active' : ''}`}
-              onClick={() => setActiveDrawerTab('media')}
-            >
-              <Film size={14} />
-              <span>Assets</span>
-            </button>
-
-            <button 
-              className={`drawer-tab-btn ${activeDrawerTab === 'ai' ? 'active' : ''}`}
-              onClick={() => setActiveDrawerTab('ai')}
-            >
-              <Sparkles size={14} />
-              <span>AI Studio</span>
-            </button>
-
-            <button 
-              className={`drawer-tab-btn ${activeDrawerTab === 'mcp' ? 'active' : ''}`}
-              onClick={() => setActiveDrawerTab('mcp')}
-            >
-              <Bot size={14} />
-              <span>MCP Agent</span>
-            </button>
-          </div>
-
-          <div className="drawer-content">
-            {activeDrawerTab === 'media' && (
-              <MediaBin 
-                mediaList={mediaList}
-                onAddMedia={(newAsset) => setMediaList((prev) => [newAsset, ...prev])}
-                onInsertToTimeline={handleInsertMedia}
-              />
-            )}
-
-            {activeDrawerTab === 'ai' && (
-              <AIGenerativeStudio 
-                onGenerateClip={handleGenerateClip}
-              />
-            )}
-
-            {activeDrawerTab === 'mcp' && (
-              <MCPAgentConsole 
-                onExecuteMcpAction={handleExecuteMcpAction}
-                currentTime={currentTime}
-                clipsCount={clips.length}
-              />
-            )}
-          </div>
+          <MediaPanelContainer 
+            mediaList={mediaList}
+            onAddMedia={(newAsset) => setMediaList((prev) => [newAsset, ...prev])}
+            onInsertToTimeline={handleInsertMedia}
+            markers={markers}
+            onSeek={(t) => setCurrentTime(t)}
+            onApplyCaptionTemplate={handleApplyCaptionTemplate}
+            onAutoTranscribe={handleAutoTranscribe}
+          />
         </aside>
 
-        {/* Center Stage (Monitor + Multi-Track Timeline) */}
+        {/* Center Stage: Preview Monitor & Timeline */}
         <main className="palmier-stage">
           <PreviewMonitor 
             currentTime={currentTime}
@@ -299,6 +356,7 @@ export default function App() {
             fps={fps}
             activeVideoClip={activeVideoClip}
             activeTextClip={activeTextClip}
+            selectedClip={selectedClip}
           />
 
           <Timeline 
@@ -312,30 +370,41 @@ export default function App() {
             onUpdateClip={handleUpdateClip}
             onDeleteClip={handleDeleteClip}
             onSplitClip={handleSplitClip}
+            onDuplicateClip={handleDuplicateClip}
           />
         </main>
 
-        {/* Right Inspector Panel */}
+        {/* Right Inspector Panel matching Palmier Pro 5 Tabs */}
         <Inspector 
           clip={selectedClip}
           onUpdateClip={handleUpdateClip}
         />
+
+        {/* Rightmost Copilot Sidebar matching Palmier Pro AgentPanelView.swift */}
+        {showAgentSidebar && (
+          <AgentSidebar 
+            onExecuteMcpAction={handleExecuteMcpAction}
+            currentTime={currentTime}
+            clipsCount={clips.length}
+            onClose={() => setShowAgentSidebar(false)}
+          />
+        )}
       </div>
 
-      {/* Export Render Modal */}
+      {/* 3. Export Modal with ProRes 422 / H.265 Master Exporter */}
       {exportModal && (
         <div style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(0,0,0,0.75)',
-          backdropFilter: 'blur(8px)',
+          background: 'rgba(0,0,0,0.8)',
+          backdropFilter: 'blur(10px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 100
+          zIndex: 1000
         }}>
           <div style={{
-            width: '420px',
+            width: '450px',
             background: 'var(--bg-panel)',
             border: '1px solid var(--border-medium)',
             borderRadius: 'var(--radius-lg)',
@@ -345,8 +414,10 @@ export default function App() {
             gap: '16px',
             boxShadow: 'var(--shadow-lg)'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Film size={22} color="var(--accent-blue)" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '38px', height: '38px', borderRadius: '8px', background: 'rgba(59,130,246,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Film size={22} color="var(--accent-blue)" />
+              </div>
               <div>
                 <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#fff' }}>Exporting {projectName}</h3>
                 <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>ProRes 422 / H.265 Master ({resolution} @ {fps}fps)</p>
@@ -357,32 +428,34 @@ export default function App() {
               <div style={{ width: `${exportProgress}%`, height: '100%', background: 'linear-gradient(90deg, var(--accent-blue), var(--accent-emerald))', transition: 'width 0.2s ease' }} />
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-secondary)' }}>
-              <span>{exportProgress < 100 ? 'Encoding video streams & audio stems...' : 'Render completed successfully!'}</span>
-              <span>{exportProgress}%</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', color: 'var(--text-secondary)' }}>
+              <span>{exportProgress < 100 ? 'Encoding video streams & audio stems...' : 'Master export completed successfully!'}</span>
+              <span style={{ fontWeight: '700', fontFamily: 'monospace' }}>{exportProgress}%</span>
             </div>
 
             {exportProgress === 100 && (
               <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
                 <button 
                   className="btn-primary" 
-                  style={{ flex: 1, justifyContent: 'center' }}
+                  style={{ flex: 1, justifyContent: 'center', gap: '6px' }}
                   onClick={() => {
-                    const blob = new Blob([`PALMIER PRO VIDEO EXPORT\nProject: ${projectName}\nResolution: ${resolution}\nFramerate: ${fps}fps`], { type: 'text/plain' });
+                    const blob = new Blob([
+                      `<?xml version="1.0" encoding="UTF-8"?>\n<fcpxml version="1.9">\n  <project name="${projectName}">\n    <sequence duration="${totalDuration}s" format="${resolution}" fps="${fps}">\n      <timeline clips="${clips.length}"/>\n    </sequence>\n  </project>\n</fcpxml>`
+                    ], { type: 'application/xml' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `${projectName.replace(/\s+/g, '_')}_master.txt`;
+                    a.download = `${projectName.replace(/\s+/g, '_')}_master.fcpxml`;
                     a.click();
                     setExportModal(false);
                   }}
                 >
                   <Download size={14} />
-                  <span>Download Master File</span>
+                  <span>Download FCPXML / Master</span>
                 </button>
                 <button 
                   className="btn-icon" 
-                  style={{ padding: '8px 16px', background: 'var(--bg-panel-secondary)' }}
+                  style={{ padding: '8px 16px', background: 'var(--bg-panel-secondary)', height: 'auto' }}
                   onClick={() => setExportModal(false)}
                 >
                   Close
