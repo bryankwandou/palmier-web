@@ -2105,4 +2105,1137 @@ input, textarea {
   color: #b0b0bd;
 }
 
+/* ========================================================
+   PALMIER PRO - HOME VIEW & PROJECTS HUB (HomeView.swift)
+   ======================================================== */
+.palmier-home-root {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  background: #111114;
+  color: #ededed;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif;
+}
+
+.palmier-home-sidebar {
+  width: 240px;
+  background: #16161a;
+  border-right: 1px solid #202028;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 12px;
+  user-select: none;
+}
+
+.home-identity-strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: #1e1e24;
+  border: 1px solid #282834;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.identity-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f59e0b, #ef4444);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.identity-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.identity-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.identity-badge {
+  font-size: 10px;
+  color: #f59e0b;
+}
+
+.home-sidebar-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.home-sidebar-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  background: transparent;
+  color: #c4c4cf;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+
+.home-sidebar-btn:hover {
+  background: #20202a;
+  color: #fff;
+}
+
+.home-sidebar-btn.primary {
+  background: #272736;
+  border-color: #3b3b50;
+  color: #fff;
+}
+
+.home-sidebar-btn.primary:hover {
+  background: #323246;
+}
+
+.home-sidebar-spacer {
+  flex: 1;
+}
+
+.home-update-card {
+  background: #191922;
+  border: 1px solid #252532;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.update-card-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.update-ok-icon {
+  color: #10b981;
+}
+
+.update-version {
+  font-size: 11px;
+  font-weight: 600;
+  color: #e2e2ec;
+}
+
+.update-status-text {
+  font-size: 10px;
+  color: #8c8c9e;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.home-sidebar-footer {
+  border-top: 1px solid #202028;
+  padding-top: 10px;
+}
+
+.home-main-header {
+  padding: 32px 40px 20px 40px;
+}
+
+.home-welcome-title {
+  font-size: 26px;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  color: #fff;
+  margin: 0 0 6px 0;
+}
+
+.home-welcome-subtitle {
+  font-size: 13px;
+  color: #888898;
+  margin: 0;
+}
+
+.palmier-home-main {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.home-samples-section {
+  padding: 0 40px 28px 40px;
+}
+
+.section-header-collapsible {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.section-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #e4e4ed;
+}
+
+.section-arrow {
+  color: #71717a;
+  transition: transform 0.2s ease;
+}
+
+.section-arrow.expanded {
+  transform: rotate(90deg);
+}
+
+.section-count {
+  font-size: 11px;
+  color: #71717a;
+}
+
+.sample-cards-carousel {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+.sample-project-card {
+  width: 220px;
+  flex-shrink: 0;
+  background: #18181f;
+  border: 1px solid #252530;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sample-project-card:hover {
+  transform: translateY(-2px);
+  border-color: #f59e0b;
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.12);
+}
+
+.sample-card-poster {
+  width: 100%;
+  height: 124px;
+  position: relative;
+  background: #000;
+}
+
+.sample-card-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.85;
+}
+
+.poster-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 40%, rgba(0, 0, 0, 0.8) 100%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 8px 10px;
+}
+
+.play-badge {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(245, 158, 11, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sample-res-tag {
+  font-size: 9px;
+  font-family: 'JetBrains Mono', monospace;
+  background: rgba(0, 0, 0, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 2px 5px;
+  border-radius: 3px;
+  color: #f59e0b;
+}
+
+.sample-card-body {
+  padding: 10px 12px;
+}
+
+.sample-title {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 6px;
+}
+
+.sample-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  color: #8c8c9e;
+}
+
+.sample-tag {
+  color: #f59e0b;
+  background: #231d10;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.home-my-projects-section {
+  padding: 0 40px 40px 40px;
+}
+
+.my-projects-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.projects-count-pill {
+  font-size: 10px;
+  background: #242430;
+  color: #9c9cae;
+  padding: 2px 7px;
+  border-radius: 10px;
+}
+
+.projects-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #181820;
+  border: 1px solid #282836;
+  border-radius: 6px;
+  padding: 6px 10px;
+  width: 220px;
+}
+
+.projects-search-bar input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-size: 11px;
+  width: 100%;
+}
+
+.my-projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.new-project-dashed-card {
+  border: 1.5px dashed #2f2f3d;
+  background: #141419;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 180px;
+}
+
+.new-project-dashed-card:hover {
+  border-color: #f59e0b;
+  background: #1a1a22;
+}
+
+.dashed-icon-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #22222d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f59e0b;
+  margin-bottom: 10px;
+}
+
+.dashed-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.dashed-card-desc {
+  font-size: 10px;
+  color: #71717a;
+  text-align: center;
+}
+
+.project-grid-card {
+  background: #181820;
+  border: 1px solid #252532;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.project-grid-card:hover {
+  transform: translateY(-2px);
+  border-color: #3b3b4f;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.project-card-thumbnail {
+  width: 100%;
+  height: 120px;
+  position: relative;
+  background: #000;
+}
+
+.project-card-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thumbnail-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.85) 100%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 8px;
+}
+
+.card-aspect-badge,
+.card-time-badge {
+  font-size: 9px;
+  font-family: 'JetBrains Mono', monospace;
+  background: rgba(0,0,0,0.7);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #e5e5ec;
+  padding: 2px 5px;
+  border-radius: 3px;
+}
+
+.project-card-details {
+  padding: 10px 12px;
+}
+
+.project-details-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.project-name-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.project-card-menu-btn {
+  background: transparent;
+  border: none;
+  color: #71717a;
+  cursor: pointer;
+  padding: 2px;
+}
+
+.project-card-menu-btn:hover {
+  color: #fff;
+}
+
+.project-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: #8c8c9e;
+}
+
+.meta-bullet {
+  color: #4a4a58;
+}
+
+.project-card-popover-menu {
+  position: absolute;
+  top: 130px;
+  right: 12px;
+  background: #20202c;
+  border: 1px solid #36364a;
+  border-radius: 6px;
+  padding: 4px;
+  z-index: 10;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.popover-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  color: #e2e2ec;
+  font-size: 11px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.popover-item:hover {
+  background: #2b2b3d;
+}
+
+.popover-item.delete {
+  color: #ef4444;
+}
+
+.popover-item.delete:hover {
+  background: #3c1e22;
+}
+
+/* ========================================================
+   PALMIER PRO - TOP BAR NAV ELEMENTS
+   ======================================================== */
+.titlebar-left-zone {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.topbar-home-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: #1f1f28;
+  border: 1px solid #2e2e3d;
+  border-radius: 4px;
+  color: #d1d1dc;
+  font-size: 11px;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.topbar-home-nav-btn:hover {
+  background: #2a2a38;
+  color: #fff;
+}
+
+.native-project-name-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: none;
+  color: #e5e5ec;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.native-project-name-btn:hover {
+  background: #1c1c24;
+}
+
+.project-chevron {
+  color: #71717a;
+}
+
+/* ========================================================
+   PALMIER PRO - SETTINGS WINDOW (SettingsView.swift)
+   ======================================================== */
+.palmier-settings-window {
+  width: 580px;
+  max-width: 95vw;
+  background: #181820;
+  border: 1px solid #2d2d3d;
+  border-radius: 10px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-window-header {
+  background: #13131a;
+  border-bottom: 1px solid #232330;
+  padding: 14px 18px 0 18px;
+}
+
+.settings-window-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.settings-window-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.settings-close-btn {
+  background: transparent;
+  border: none;
+  color: #71717a;
+  cursor: pointer;
+}
+
+.settings-close-btn:hover {
+  color: #fff;
+}
+
+.settings-tab-toolbar {
+  display: flex;
+  gap: 6px;
+}
+
+.settings-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #8c8c9e;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.settings-tab-btn:hover {
+  color: #fff;
+}
+
+.settings-tab-btn.active {
+  color: #f59e0b;
+  border-bottom-color: #f59e0b;
+}
+
+.settings-window-body {
+  padding: 20px;
+  max-height: 440px;
+  overflow-y: auto;
+}
+
+.settings-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.settings-group {
+  background: #1c1c26;
+  border: 1px solid #292938;
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.settings-group-title {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: #e5e5ec;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.settings-row:last-child {
+  margin-bottom: 0;
+}
+
+.settings-row label {
+  font-size: 11px;
+  color: #a0a0b2;
+}
+
+.settings-row select,
+.settings-row input[type="text"] {
+  background: #14141c;
+  border: 1px solid #2e2e40;
+  border-radius: 5px;
+  color: #fff;
+  font-size: 11px;
+  padding: 5px 8px;
+  outline: none;
+}
+
+.settings-code-pill {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  background: #12121a;
+  border: 1px solid #28283a;
+  color: #f59e0b;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.settings-val-highlight {
+  font-size: 11px;
+  color: #10b981;
+  font-weight: 500;
+}
+
+.server-status-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  background: #142820;
+  color: #34d399;
+  border: 1px solid #1c4434;
+}
+
+.account-profile-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.profile-large-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f59e0b, #ef4444);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-display-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.profile-email {
+  font-size: 11px;
+  color: #8c8c9e;
+}
+
+.profile-tier-badge {
+  font-size: 10px;
+  color: #f59e0b;
+  margin-top: 2px;
+}
+
+.theme-selection-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.theme-card {
+  background: #14141c;
+  border: 1px solid #292938;
+  border-radius: 6px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 10px;
+  color: #a0a0b2;
+}
+
+.theme-card.active {
+  border-color: #f59e0b;
+  color: #fff;
+}
+
+.theme-preview {
+  width: 100%;
+  height: 48px;
+  border-radius: 4px;
+}
+
+.dark-theme { background: #111116; border: 1px solid #20202a; }
+.gray-theme { background: #24242d; border: 1px solid #363644; }
+.cyberpunk-theme { background: #0b0f19; border: 1px solid #06b6d4; }
+
+.purge-cache-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #2b1f24;
+  border: 1px solid #4a2832;
+  color: #ef4444;
+  font-size: 11px;
+  padding: 6px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.purge-cache-btn:hover {
+  background: #3d232c;
+}
+
+.settings-window-footer {
+  background: #13131a;
+  border-top: 1px solid #232330;
+  padding: 10px 18px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.settings-done-btn {
+  background: #f59e0b;
+  color: #000;
+  font-weight: 600;
+  border: none;
+  border-radius: 5px;
+  padding: 6px 14px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+/* ========================================================
+   PALMIER PRO - DUAL PANE EXPORT WINDOW (ExportView.swift)
+   ======================================================== */
+.palmier-export-window {
+  width: 720px;
+  max-width: 95vw;
+  background: #16161e;
+  border: 1px solid #2e2e40;
+  border-radius: 10px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.export-window-header {
+  background: #111116;
+  border-bottom: 1px solid #232330;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.export-window-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.export-close-btn {
+  background: transparent;
+  border: none;
+  color: #71717a;
+  cursor: pointer;
+}
+
+.export-close-btn:hover {
+  color: #fff;
+}
+
+.export-window-body {
+  display: flex;
+  min-height: 380px;
+}
+
+.export-settings-pane {
+  flex: 1.2;
+  padding: 16px;
+  border-right: 1px solid #232330;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.export-section-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 600;
+  color: #8c8c9e;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  letter-spacing: 0.04em;
+}
+
+.destination-toggle-bar {
+  display: flex;
+  gap: 6px;
+  background: #111116;
+  border: 1px solid #262634;
+  border-radius: 6px;
+  padding: 3px;
+}
+
+.dest-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: #8c8c9e;
+  font-size: 11px;
+  padding: 6px 4px;
+  cursor: pointer;
+}
+
+.dest-btn.active {
+  background: #252535;
+  color: #fff;
+  font-weight: 600;
+}
+
+.export-options-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.option-btn {
+  background: #1a1a24;
+  border: 1px solid #28283a;
+  border-radius: 6px;
+  padding: 8px 10px;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.15s ease;
+}
+
+.option-btn.active {
+  border-color: #f59e0b;
+  background: #222230;
+}
+
+.opt-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.opt-desc {
+  font-size: 9px;
+  color: #71717a;
+  margin-top: 2px;
+}
+
+.export-section-row {
+  display: flex;
+  gap: 12px;
+}
+
+.export-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.export-field label {
+  font-size: 10px;
+  color: #8c8c9e;
+}
+
+.export-field select {
+  background: #111116;
+  border: 1px solid #28283a;
+  border-radius: 5px;
+  color: #fff;
+  font-size: 11px;
+  padding: 5px 8px;
+  outline: none;
+}
+
+.export-help-text {
+  font-size: 11px;
+  color: #8c8c9e;
+  line-height: 1.4;
+  background: #13131a;
+  border: 1px solid #22222e;
+  border-radius: 6px;
+  padding: 10px;
+  margin: 0;
+}
+
+.export-action-bar {
+  margin-top: auto;
+  padding-top: 10px;
+}
+
+.start-export-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #f59e0b;
+  color: #000;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  padding: 9px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.start-export-btn:hover {
+  background: #d97706;
+}
+
+.export-queue-log-pane {
+  flex: 1;
+  background: #111116;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.queue-log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.log-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #d1d1dc;
+}
+
+.queue-status-tag {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #1e1e28;
+  color: #f59e0b;
+  font-weight: 500;
+}
+
+.export-progress-track {
+  width: 100%;
+  height: 6px;
+  background: #1f1f2a;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.export-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f59e0b, #10b981);
+  transition: width 0.2s ease;
+}
+
+.export-progress-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #71717a;
+}
+
+.export-log-terminal {
+  flex: 1;
+  background: #08080c;
+  border: 1px solid #1a1a24;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: #38bdf8;
+  overflow-y: auto;
+  max-height: 180px;
+  line-height: 1.5;
+}
+
+.terminal-line {
+  margin-bottom: 4px;
+}
+
+.terminal-placeholder {
+  color: #4a4a5a;
+  font-style: italic;
+}
+
+.export-complete-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #13241b;
+  border: 1px solid #1e4d35;
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: #34d399;
+  font-size: 11px;
+}
+
+.banner-check {
+  color: #34d399;
+}
+
+
 

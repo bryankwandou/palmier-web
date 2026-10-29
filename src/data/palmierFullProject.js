@@ -112,3 +112,91 @@ export const AI_MODELS_CATALOG = [
   { id: 'minimax-hailuo', name: 'MiniMax Hailuo 01', provider: 'MiniMax', maxRes: '1080p', maxDuration: '6s', costPerSec: '$0.050' },
   { id: 'luma-ray-2', name: 'Luma Ray 2', provider: 'Luma AI', maxRes: '1080p', maxDuration: '9s', costPerSec: '$0.090' }
 ];
+
+// Sample Projects Catalog matching SampleProjectsStrip.swift
+export const SAMPLE_PROJECTS_CATALOG = [
+  {
+    id: 'sample-1',
+    name: 'Butterfly Macro 4K',
+    duration: '00:33',
+    fps: 24,
+    resolution: '4K 2160p',
+    aspectRatio: '16:9',
+    tag: 'Macro Nature',
+    thumb: '/welcome-butterfly.jpg'
+  },
+  {
+    id: 'sample-2',
+    name: 'Tokyo Cyberpunk Reel',
+    duration: '00:15',
+    fps: 30,
+    resolution: '1080x1920',
+    aspectRatio: '9:16',
+    tag: 'Vertical Short',
+    thumb: '/tour-hero.jpg'
+  },
+  {
+    id: 'sample-3',
+    name: 'Trailer 60s Cut',
+    duration: '01:00',
+    fps: 24,
+    resolution: '4K 2160p',
+    aspectRatio: '16:9',
+    tag: 'Cinematic Teaser',
+    thumb: '/welcome-butterfly.jpg'
+  },
+  {
+    id: 'sample-4',
+    name: 'Minimalist Documentary',
+    duration: '00:45',
+    fps: 24,
+    resolution: '1080p FHD',
+    aspectRatio: '16:9',
+    tag: 'Documentary VO',
+    thumb: '/tour-hero.jpg'
+  },
+  {
+    id: 'sample-5',
+    name: 'Fashion Lookbook 2026',
+    duration: '00:20',
+    fps: 24,
+    resolution: '1080p FHD',
+    aspectRatio: '16:9',
+    tag: 'Lookbook Reel',
+    thumb: '/welcome-butterfly.jpg'
+  }
+];
+
+// Initial user projects list matching MyProjectsSection.swift
+export const INITIAL_USER_PROJECTS = [
+  {
+    id: 'proj-1',
+    name: 'Aesthetic video',
+    duration: '00:33:12',
+    fps: 24,
+    resolution: '1920x1080',
+    aspectRatio: '16:9',
+    modifiedDate: 'Just now',
+    thumb: '/welcome-butterfly.jpg'
+  },
+  {
+    id: 'proj-2',
+    name: 'Vertical 9:16 Reel',
+    duration: '00:15:00',
+    fps: 30,
+    resolution: '1080x1920',
+    aspectRatio: '9:16',
+    modifiedDate: '2 hours ago',
+    thumb: '/tour-hero.jpg'
+  },
+  {
+    id: 'proj-3',
+    name: 'Trailer 60s Cut',
+    duration: '01:00:00',
+    fps: 24,
+    resolution: '3840x2160',
+    aspectRatio: '16:9',
+    modifiedDate: 'Yesterday',
+    thumb: '/welcome-butterfly.jpg'
+  }
+];
